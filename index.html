@@ -1,0 +1,2778 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>封神2：仙界傳 Online — 經典單機復刻版</title>
+<style>
+  * { box-sizing: border-box; user-select: none; margin: 0; padding: 0; font-family: "Microsoft JhengHei", "PMingLiU", "SimSun", sans-serif; }
+  body { background: #0f141d; color: #fff; overflow: hidden; display: flex; align-items: center; justify-content: center; width: 100vw; height: 100vh; }
+  #game-wrapper {
+    position: relative; width: 1024px; height: 720px;
+    background: #1a2418; border: 3px solid #d88b35;
+    box-shadow: 0 0 35px rgba(0,0,0,0.9), inset 0 0 8px rgba(255,200,120,0.4);
+    overflow: hidden;
+  }
+  canvas#main-canvas { position: absolute; top: 0; left: 0; width: 1024px; height: 720px; cursor: pointer; }
+
+  /* ====== 左上角：「仙」與 F1~F10 快捷列 ====== */
+  #top-left-bar {
+    position: absolute; top: 4px; left: 4px; display: flex; align-items: flex-start; z-index: 20; pointer-events: none;
+  }
+  .xian-logo-btn {
+    pointer-events: auto; width: 40px; height: 40px;
+    background: linear-gradient(180deg, #4f8ad6 0%, #245399 100%);
+    border: 2px solid #e5943c; border-radius: 4px;
+    box-shadow: inset 0 1px 2px #9ec8ff, 1px 2px 4px rgba(0,0,0,0.65);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 900; color: #fff;
+    text-shadow: 0 1px 3px #0a1f44, 0 0 6px #7eb6ff;
+    cursor: pointer; margin-right: 2px;
+  }
+  .xian-logo-btn:hover { filter: brightness(1.15); }
+  #hotkey-bar {
+    pointer-events: auto; display: flex; background: rgba(32, 55, 88, 0.85);
+    border: 2px solid #e5943c; border-radius: 4px; padding: 1px; gap: 1px;
+    box-shadow: 1px 2px 5px rgba(0,0,0,0.65);
+  }
+  .hk-slot {
+    position: relative; width: 36px; height: 36px;
+    background: linear-gradient(135deg, #7498bf 0%, #527399 100%);
+    border: 1px solid #b8cfe8; border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; overflow: hidden;
+  }
+  .hk-slot:hover { border-color: #ffe28a; background: linear-gradient(135deg, #86aad1 0%, #6083ab 100%); }
+  .hk-slot .hk-label {
+    position: absolute; top: 1px; left: 2px; font-size: 10px; font-weight: bold;
+    color: rgba(235, 245, 255, 0.72); text-shadow: 1px 1px 1px #1e334d; pointer-events: none;
+  }
+  .hk-slot .hk-icon { font-size: 20px; filter: drop-shadow(1px 2px 1px rgba(0,0,0,0.5)); }
+  .hk-slot .hk-count {
+    position: absolute; bottom: 0px; right: 2px; font-size: 10px; font-weight: bold;
+    color: #fff3a1; text-shadow: 1px 1px 1px #000;
+  }
+  .hk-pager {
+    width: 18px; height: 36px; background: #41648c; border-left: 1px solid #e5943c;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    font-size: 9px; color: #fff; padding: 1px 0; cursor: pointer;
+  }
+
+  /* ====== 左上角：角色、戰寵、神仙大頭照與血魔條 ====== */
+  #portrait-group {
+    position: absolute; top: 47px; left: 4px; display: flex; gap: 4px; z-index: 20; pointer-events: auto;
+  }
+  .portrait-card {
+    width: 50px; background: rgba(25, 35, 50, 0.85);
+    border: 2px solid #e5943c; border-radius: 4px; padding: 2px;
+    box-shadow: 1px 2px 5px rgba(0,0,0,0.65); cursor: pointer;
+  }
+  .portrait-face {
+    width: 42px; height: 42px; background: linear-gradient(180deg, #f3d7b6 0%, #c8986c 100%);
+    border: 1px solid #6e4423; border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; position: relative; overflow: hidden;
+  }
+  .portrait-lv {
+    position: absolute; bottom: 0; right: 0; background: rgba(0,0,0,0.75);
+    color: #ffe875; font-size: 9px; font-weight: bold; padding: 0 2px; border-radius: 2px 0 0 0;
+  }
+  .p-bar-wrap { width: 100%; height: 5px; background: #1c1c1c; border: 1px solid #4d3319; margin-top: 2px; border-radius: 2px; overflow: hidden; }
+  .p-bar-hp { height: 100%; background: linear-gradient(90deg, #ff3b30, #ff7b54); width: 100%; transition: width 0.2s; }
+  .p-bar-mp { height: 100%; background: linear-gradient(90deg, #1d70f2, #5ac8fa); width: 100%; transition: width 0.2s; }
+  .p-bar-exp { height: 100%; background: linear-gradient(90deg, #a6e22e, #f9d423); width: 40%; transition: width 0.2s; }
+
+  /* ====== 右上角：小地圖與座標欄 ====== */
+  #minimap-panel {
+    position: absolute; top: 4px; right: 4px; width: 172px;
+    background: #355c87; border: 2px solid #e5943c; border-radius: 5px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.7); z-index: 20; overflow: hidden;
+  }
+  .mm-header {
+    height: 22px; background: linear-gradient(90deg, #4275ad 0%, #7da6d4 75%, #e5943c 100%);
+    border-bottom: 2px solid #e5943c; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 4px 0 8px; font-size: 12px; font-weight: bold; color: #fff; text-shadow: 1px 1px 1px #0f253e;
+  }
+  .mm-close {
+    width: 15px; height: 15px; background: #d9534f; border: 1px solid #fff; border-radius: 2px;
+    display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer;
+  }
+  #minimap-canvas { display: block; width: 168px; height: 102px; background: #143642; cursor: crosshair; }
+  .mm-footer {
+    height: 22px; background: linear-gradient(180deg, #5c8bc0 0%, #376294 100%);
+    border-top: 2px solid #e5943c; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 4px; font-size: 11px; color: #fff;
+  }
+  .mm-world-btn {
+    background: #e5943c; color: #fff; border: 1px solid #fff5cc; border-radius: 3px;
+    padding: 0 4px; font-size: 10px; font-weight: bold; cursor: pointer; text-shadow: 1px 1px 1px #5e3104;
+  }
+  .mm-world-btn:hover { background: #f3a64c; }
+  .mm-coords { font-family: monospace; font-size: 11px; font-weight: bold; color: #eef7ff; text-shadow: 1px 1px 1px #0d2238; }
+
+  /* ====== 左下角：7色頻道按鈕與半透明聊天室 ====== */
+  #chat-container {
+    position: absolute; bottom: 0; left: 0; width: 470px; height: 175px;
+    z-index: 20; pointer-events: none; display: flex; flex-direction: column; justify-content: flex-end;
+  }
+  #chat-upper { display: flex; height: 146px; width: 100%; }
+  #chat-channels {
+    width: 22px; background: linear-gradient(180deg, #f3d6ae, #d9aa73);
+    border: 2px solid #d88b35; border-bottom: none; border-radius: 4px 0 0 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-around;
+    padding: 2px 0; pointer-events: auto;
+  }
+  .ch-tab {
+    width: 16px; height: 17px; border: 1px solid #63411c; border-radius: 2px;
+    font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: #1b1b1b; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  #chat-log {
+    flex: 1; background: rgba(12, 18, 14, 0.56); border-top: 1px solid rgba(255,255,255,0.18);
+    border-right: 1px solid rgba(255,255,255,0.18); padding: 6px 8px;
+    overflow-y: auto; font-size: 12px; line-height: 1.45; pointer-events: auto;
+    text-shadow: 1px 1px 1px #000;
+  }
+  .log-line { margin-bottom: 2px; word-break: break-all; }
+  .log-loot { color: #d896ff; }
+  .log-sys { color: #ffe066; }
+  .log-npc { color: #72f29a; }
+  .log-dmg { color: #ff857a; }
+  .log-chat { color: #ffffff; }
+
+  /* ====== 底部：聊天輸入列 + 右下角 8 顆古風圓形系統按鈕 ====== */
+  #bottom-bar {
+    position: absolute; bottom: 0; left: 0; width: 1024px; height: 29px;
+    background: linear-gradient(180deg, #f7e6cd 0%, #deb887 100%);
+    border-top: 2px solid #d88b35; display: flex; align-items: center; z-index: 25;
+  }
+  #chat-input-area {
+    width: 470px; height: 100%; display: flex; align-items: center; padding: 0 4px; gap: 3px;
+    background: linear-gradient(180deg, #9ec2e6 0%, #6d98c4 100%);
+    border-right: 2px solid #d88b35;
+  }
+  .chat-Target-pill {
+    background: #356294; color: #fff; font-size: 11px; padding: 2px 6px;
+    border: 1px solid #c5dfff; border-radius: 3px; white-space: nowrap; cursor: pointer;
+  }
+  #chat-input {
+    flex: 1; height: 21px; background: #dcebfa; border: 1px solid #356294;
+    border-radius: 2px; padding: 0 6px; font-size: 12px; color: #12263a; outline: none;
+  }
+  .chat-mini-btn {
+    width: 22px; height: 21px; background: #4a7ab0; border: 1px solid #d0e5ff;
+    border-radius: 3px; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; cursor: pointer; color: #fff;
+  }
+
+  #sys-menu-bar {
+    flex: 1; height: 100%; display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 8px; gap: 6px;
+    background: linear-gradient(180deg, #f5dec0 0%, #d8ae79 100%);
+  }
+  .sys-round-btn {
+    position: relative; width: 58px; height: 25px;
+    background: linear-gradient(180deg, #fff6e6 0%, #e4bc88 100%);
+    border: 1.5px solid #9c5a18; border-radius: 13px;
+    display: flex; align-items: center; justify-content: center; gap: 2px;
+    cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.4), inset 0 1px 0 #fff;
+    font-size: 12px; font-weight: bold; color: #4a2505;
+    transition: transform 0.1s, filter 0.1s;
+  }
+  .sys-round-btn:hover { filter: brightness(1.1); transform: translateY(-1px); border-color: #d87614; }
+  .sys-round-btn.active { background: linear-gradient(180deg, #ffd27d 0%, #e08e2b 100%); color: #fff; text-shadow: 1px 1px 1px #5c2c00; }
+  .sys-round-btn .ico { font-size: 14px; }
+
+  /* ====== 經典橘金邊框 + 藍底標題 浮動視窗系統 ====== */
+  .fs-window {
+    position: absolute; background: #f5efe4;
+    border: 3px solid #e5943c; border-radius: 6px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.75), inset 0 0 0 1px #fff8eb;
+    z-index: 40; display: none; color: #2b1d0e;
+  }
+  .fs-win-header {
+    height: 26px; background: linear-gradient(90deg, #3e70a8 0%, #6fa0d6 78%, #e5943c 100%);
+    border-bottom: 2px solid #e5943c; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 6px 0 10px; color: #fff; font-size: 13px; font-weight: bold;
+    text-shadow: 1px 1px 2px #102a47;
+  }
+  .fs-win-close {
+    width: 18px; height: 18px; background: #d9534f; border: 1px solid #fff; border-radius: 3px;
+    display: flex; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; color: #fff;
+  }
+  .fs-win-body { padding: 8px; font-size: 12px; }
+
+  /* ====== 物品裝備視窗 (1:1 還原影片 00:47 右側行囊介面) ====== */
+  #win-inventory { top: 42px; right: 184px; width: 256px; }
+  .inv-gold-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #8ab4de; border: 1px solid #3f6b99; border-radius: 3px;
+    padding: 3px 8px; margin-bottom: 6px; color: #fff; font-weight: bold;
+    text-shadow: 1px 1px 1px #163252;
+  }
+  .equip-doll-grid {
+    display: grid; grid-template-columns: 44px 1fr 44px; gap: 6px;
+    background: linear-gradient(180deg, #d7e4f2 0%, #b7cde6 100%);
+    border: 2px solid #d88b35; border-radius: 4px; padding: 6px; margin-bottom: 6px;
+  }
+  .equip-col { display: flex; flex-direction: column; gap: 4px; }
+  .eq-slot {
+    width: 42px; height: 42px; background: linear-gradient(135deg, #6d92b8, #4b6e94);
+    border: 1px solid #f0f7ff; border-radius: 3px; position: relative;
+    display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.45);
+  }
+  .eq-slot:hover { border-color: #ffe066; }
+  .eq-slot .eq-hint { font-size: 10px; color: rgba(220,235,255,0.55); position: absolute; pointer-events: none; }
+  .doll-center {
+    background: radial-gradient(circle, #eef6ff 0%, #8eb3d9 100%);
+    border: 1px solid #5a82ab; border-radius: 4px;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 6px 4px;
+  }
+  .doll-avatar { font-size: 52px; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.35)); margin-top: 8px; }
+  .doll-bottom-row { display: flex; gap: 6px; width: 100%; justify-content: center; }
+  .inv-bag-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px;
+    background: #d8c3a5; border: 2px solid #d88b35; border-radius: 4px; padding: 4px;
+  }
+  .bag-slot {
+    width: 42px; height: 42px; background: linear-gradient(135deg, #7498bf 0%, #527399 100%);
+    border: 1px solid #dcebff; border-radius: 3px; position: relative;
+    display: flex; align-items: center; justify-content: center; font-size: 21px; cursor: pointer;
+  }
+  .bag-slot:hover { border-color: #ffe270; filter: brightness(1.1); }
+  .bag-slot .qty {
+    position: absolute; top: 1px; left: 2px; font-size: 10px; font-weight: bold;
+    color: #fff; text-shadow: 1px 1px 1px #000;
+  }
+
+  /* ====== 經典深色半透明浮動提示框 (Tooltip - 1:1 還原影片 00:47) ====== */
+  #fs-tooltip {
+    position: absolute; pointer-events: none; display: none; z-index: 100;
+    background: rgba(15, 22, 30, 0.9); border: 1.5px solid #e5943c; border-radius: 4px;
+    padding: 7px 10px; color: #fff; font-size: 12px; line-height: 1.45; min-width: 155px; max-width: 240px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+  }
+  #fs-tooltip .tt-title { color: #ffe066; font-weight: bold; font-size: 13px; margin-bottom: 2px; }
+  #fs-tooltip .tt-type { color: #8ad4ff; font-size: 11px; }
+  #fs-tooltip .tt-desc { color: #e2e8f0; margin-top: 3px; }
+
+  /* ====== 戰鬥中：斜階梯雙色膠囊指令選單 (1:1 還原影片 bA8qY6fsEcA 00:16 & 00:20) ====== */
+  #battle-ui-layer {
+    position: absolute; top: 0; left: 0; width: 1024px; height: 720px;
+    pointer-events: none; z-index: 30; display: none;
+  }
+  #battle-turn-counter {
+    position: absolute; top: 242px; left: 590px; display: flex; align-items: center; gap: 6px;
+  }
+  .turn-pill {
+    background: linear-gradient(180deg, #3a3a3a, #141414);
+    border: 2px solid #e5943c; border-radius: 12px; padding: 2px 10px;
+    font-size: 13px; font-weight: bold; color: #fff; letter-spacing: 1px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.7);
+  }
+  .turn-timer {
+    font-size: 26px; font-weight: 900; color: #ffe63b;
+    text-shadow: 0 0 4px #ff2a00, 2px 2px 0 #7a0000, -1px -1px 0 #7a0000;
+    font-family: "Arial Black", Impact, sans-serif;
+  }
+
+  #battle-cmd-staircase {
+    position: absolute; top: 276px; left: 340px; width: 380px; height: 210px;
+    pointer-events: none;
+  }
+  .cmd-row {
+    position: absolute; display: flex; gap: 8px; pointer-events: auto;
+  }
+  /* 雙色膠囊按鈕：左橘蓋 + 右藍身(主角) 或 右綠身(戰寵) */
+  .cmd-pill {
+    width: 72px; height: 26px; border-radius: 14px;
+    border: 2px solid #f4f8ff; box-shadow: 0 2px 6px rgba(0,0,0,0.75);
+    display: flex; align-items: center; overflow: hidden; cursor: pointer;
+    transition: transform 0.08s, filter 0.08s;
+  }
+  .cmd-pill:hover { transform: scale(1.07); filter: brightness(1.15); border-color: #ffe66d; }
+  .cmd-pill .cap {
+    width: 18px; height: 100%; background: linear-gradient(180deg, #f39c38 0%, #c86412 100%);
+    border-right: 1.5px solid #fff;
+  }
+  .cmd-pill .label {
+    flex: 1; height: 100%; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, #5da0e6 0%, #2b63a8 100%);
+    color: #fff; font-size: 13px; font-weight: bold; text-shadow: 1px 1px 2px #0d274c;
+    letter-spacing: 1px;
+  }
+  /* 戰寵階段變為綠色膠囊 (1:1 還原影片 00:20) */
+  .pet-mode .cmd-pill .label {
+    background: linear-gradient(180deg, #5ec96f 0%, #278537 100%);
+    text-shadow: 1px 1px 2px #0c3b14;
+  }
+
+  /* ====== 戰鬥中：5x3 技能/神仙/道具九宮格選單 (1:1 還原影片 00:17) ====== */
+  #battle-skill-popup {
+    position: absolute; top: 105px; left: 325px; width: 236px;
+    background: #8cb3d9; border: 3px solid #e5943c; border-radius: 5px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.85); pointer-events: auto; display: none;
+  }
+  .bsp-header {
+    height: 24px; background: linear-gradient(180deg, #dcebfa, #9fc2e6);
+    border-bottom: 2px solid #e5943c; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 8px; color: #1b3a5c; font-weight: bold; font-size: 12px;
+  }
+  .bsp-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; padding: 5px;
+    background: #5b82ab;
+  }
+  .bsp-slot {
+    width: 41px; height: 41px; background: linear-gradient(135deg, #345478, #1e3552);
+    border: 1.5px solid #c8e0fa; border-radius: 3px; position: relative;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; color: #fff;
+  }
+  .bsp-slot:hover { border-color: #ffe659; background: linear-gradient(135deg, #4b74a1, #2c4c73); }
+  .bsp-slot .s-ico { font-size: 20px; line-height: 1; }
+  .bsp-slot .s-short { font-size: 9px; color: #ffeb99; text-shadow: 1px 1px 1px #000; margin-top: 1px; white-space: nowrap; }
+
+  /* ====== 戰鬥勝利結算視窗 (1:1 還原影片 KLYLYANy3mU 00:37 & bA8qY6fsEcA 02:35) ====== */
+  #battle-victory-modal {
+    position: absolute; top: 250px; left: 405px; width: 220px;
+    background: linear-gradient(180deg, #f7e7ce 0%, #e8cba1 100%);
+    border: 4px solid #e5943c; border-radius: 8px; padding: 10px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.85), inset 0 0 0 1.5px #fff;
+    z-index: 60; display: none; pointer-events: auto; cursor: pointer;
+  }
+  .vic-bar {
+    height: 22px; background: linear-gradient(180deg, #9ec4eb 0%, #6d98c7 100%);
+    border: 1.5px solid #fff; border-radius: 4px; margin-bottom: 5px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 8px; color: #16304d; font-size: 12px; font-weight: bold;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .vic-loot-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px;
+  }
+  .vic-loot-slot {
+    height: 54px; background: linear-gradient(135deg, #9ec4eb 0%, #739bc9 100%);
+    border: 2px solid #d88b35; border-radius: 4px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 24px; color: #122a45; position: relative;
+    box-shadow: inset 0 0 6px rgba(255,255,255,0.6);
+  }
+  .vic-loot-slot span { font-size: 10px; font-weight: bold; color: #fff; text-shadow: 1px 1px 1px #000; margin-top: 2px; }
+
+  /* ====== 鴻濛境古風羊皮紙全圖視窗 (1:1 還原影片 01:38) ====== */
+  #world-map-modal {
+    position: absolute; top: 45px; left: 92px; width: 840px; height: 590px;
+    background: radial-gradient(circle, #f3dfb9 0%, #cfa872 75%, #9c713e 100%);
+    border: 5px solid #6b441b; border-radius: 8px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.9), inset 0 0 30px rgba(84,48,10,0.65);
+    z-index: 70; display: none; overflow: hidden;
+  }
+  .wm-btn {
+    background: #8c2d19; color: #ffe8b3; border: 1.5px solid #ffd27d; border-radius: 4px;
+    padding: 3px 8px; font-size: 12px; font-weight: bold; cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.6);
+  }
+  .wm-btn:hover { background: #b5381f; transform: scale(1.05); }
+
+  /* ====== 通用按鈕與表格樣式 ====== */
+  .fs-btn {
+    background: linear-gradient(180deg, #5da0e6 0%, #2b63a8 100%);
+    color: #fff; border: 1.5px solid #e5943c; border-radius: 4px;
+    padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer;
+    text-shadow: 1px 1px 1px #0c2340;
+  }
+  .fs-btn:hover { filter: brightness(1.12); }
+  .fs-btn.orange { background: linear-gradient(180deg, #f39c38 0%, #c86412 100%); }
+  .fs-btn.green { background: linear-gradient(180deg, #5ec96f 0%, #278537 100%); }
+  .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 6px; border-bottom: 1px dashed #cbb698; }
+  .stat-label { font-weight: bold; color: #5c3811; }
+  .stat-val { font-weight: bold; color: #1b4b82; }
+</style>
+</head>
+
+<body>
+<div id="game-wrapper">
+  <!-- 主遊戲與戰鬥畫布 -->
+  <canvas id="main-canvas" width="1024" height="720"></canvas>
+
+  <!-- 左上角：「仙」按鈕 + F1~F10 快捷列 (1:1 還原影片左上角) -->
+  <div id="top-left-bar">
+    <div class="xian-logo-btn" onclick="toggleWindow('win-character')" title="點擊開啟人物與職業轉生設定">仙</div>
+    <div id="hotkey-bar"></div>
+    <div class="hk-pager" onclick="cycleHotkeyPage()" title="切換快捷列頁數 (Ctrl+1~4)">
+      <span>▲</span><span id="hk-page-num">1</span><span>▼</span>
+    </div>
+  </div>
+
+  <!-- 左上角：主角、戰寵、神仙大頭照與血魔條 -->
+  <div id="portrait-group">
+    <div class="portrait-card" onclick="toggleWindow('win-character')" title="主角狀態 (快捷鍵 C)">
+      <div class="portrait-face" id="p-hero-face">🧑<span class="portrait-lv" id="p-hero-lv">Lv15</span></div>
+      <div class="p-bar-wrap"><div class="p-bar-hp" id="p-hero-hp"></div></div>
+      <div class="p-bar-wrap"><div class="p-bar-mp" id="p-hero-mp"></div></div>
+      <div class="p-bar-wrap"><div class="p-bar-exp" id="p-hero-exp"></div></div>
+    </div>
+    <div class="portrait-card" onclick="toggleWindow('win-pets')" title="戰寵狀態 (快捷鍵 P)">
+      <div class="portrait-face" id="p-pet-face">🌱<span class="portrait-lv" id="p-pet-lv">Lv12</span></div>
+      <div class="p-bar-wrap"><div class="p-bar-hp" id="p-pet-hp"></div></div>
+      <div class="p-bar-wrap"><div class="p-bar-mp" id="p-pet-mp"></div></div>
+      <div class="p-bar-wrap"><div class="p-bar-exp" id="p-pet-exp"></div></div>
+    </div>
+    <div class="portrait-card" onclick="toggleWindow('win-gods')" title="守護神仙 (快捷鍵 G)">
+      <div class="portrait-face" id="p-god-face">🧚‍♀️<span class="portrait-lv" id="p-god-lv">Lv20</span></div>
+      <div class="p-bar-wrap"><div class="p-bar-hp" style="width:100%;background:linear-gradient(90deg,#f59f00,#ffec99);"></div></div>
+      <div class="p-bar-wrap"><div class="p-bar-mp" id="p-god-exp" style="width:65%;"></div></div>
+    </div>
+  </div>
+
+  <!-- 右上角：小地圖與座標時間視窗 (1:1 還原影片右上角) -->
+  <div id="minimap-panel">
+    <div class="mm-header">
+      <span id="mm-map-title">鴻濛境</span>
+      <div class="mm-close" onclick="toggleMinimap()" title="摺疊小地圖">✕</div>
+    </div>
+    <canvas id="minimap-canvas" width="168" height="102"></canvas>
+    <div class="mm-footer">
+      <button class="mm-world-btn" onclick="toggleWorldMap()">仙界全圖</button>
+      <span class="mm-coords" id="mm-coords-text">385/93 03:43</span>
+    </div>
+  </div>
+
+  <!-- 戰鬥介面層：20秒倒數 + 斜向45度雙色膠囊選單 + 5x3技能選單 -->
+  <div id="battle-ui-layer">
+    <div id="battle-turn-counter">
+      <div class="turn-pill" id="b-round-text">001回</div>
+      <div class="turn-timer" id="b-timer-text">20</div>
+    </div>
+    <div id="battle-cmd-staircase"></div>
+    <div id="battle-skill-popup">
+      <div class="bsp-header">
+        <span id="bsp-title">武技仙術選單</span>
+        <span style="cursor:pointer;color:#c92a2a;" onclick="closeBattleSubmenu()">◄ 返回</span>
+      </div>
+      <div class="bsp-grid" id="bsp-grid"></div>
+    </div>
+  </div>
+
+  <!-- 戰鬥勝利結算橘框視窗 (1:1 還原影片 00:37 / 02:35) -->
+  <div id="battle-victory-modal" onclick="closeVictoryModal()" title="點擊任意處關閉結算">
+    <div class="vic-bar"><span>主角 獲得經驗</span><span id="vic-hero-exp">45</span></div>
+    <div class="vic-bar"><span>神仙 獲得經驗</span><span id="vic-god-exp">60</span></div>
+    <div class="vic-bar"><span>戰寵 經驗/忠誠</span><span id="vic-pet-exp">45/1</span></div>
+    <div class="vic-loot-row" id="vic-loot-row"></div>
+    <div style="text-align:center;font-size:10px;color:#7a4e1d;margin-top:6px;">（點擊視窗或按空白鍵繼續）</div>
+  </div>
+
+  <!-- 鴻濛境/仙界全圖 羊皮紙地圖視窗 (1:1 還原影片 01:38) -->
+  <div id="world-map-modal">
+    <canvas id="world-map-canvas" width="840" height="590" style="cursor:pointer;"></canvas>
+    <button class="wm-btn" style="position:absolute;top:14px;right:16px;" onclick="toggleWorldMap()">✕ 關閉輿圖</button>
+  </div>
+
+  <!-- 1. 人物與轉生屬性視窗 -->
+  <div class="fs-window" id="win-character" style="top:85px;left:180px;width:310px;">
+    <div class="fs-win-header">
+      <span>人物屬性與職業轉生 (C)</span>
+      <div class="fs-win-close" onclick="toggleWindow('win-character')">✕</div>
+    </div>
+    <div class="fs-win-body" id="char-win-content"></div>
+  </div>
+
+  <!-- 2. 物品與紙娃娃裝備視窗 (1:1 還原影片 00:47) -->
+  <div class="fs-window" id="win-inventory" style="display:none;">
+    <div class="fs-win-header">
+      <span>隨身行囊與裝備欄 (B)</span>
+      <div class="fs-win-close" onclick="toggleWindow('win-inventory')">✕</div>
+    </div>
+    <div class="fs-win-body">
+      <div class="inv-gold-bar">
+        <span>🪙 仙幣</span>
+        <span id="inv-gold-text">28,386,257</span>
+      </div>
+      <div class="equip-doll-grid">
+        <div class="equip-col" id="eq-col-left"></div>
+        <div class="doll-center">
+          <div style="font-size:11px;font-weight:bold;color:#1d426e;" id="doll-name-title">氣似雲來</div>
+          <div class="doll-avatar" id="doll-avatar-ico">🥷</div>
+          <div class="doll-bottom-row" id="eq-col-bottom"></div>
+        </div>
+        <div class="equip-col" id="eq-col-right"></div>
+      </div>
+      <div style="font-size:11px;color:#6b441b;margin-bottom:3px;display:flex;justify-content:space-between;">
+        <span>📦 點擊道具可使用/穿戴：</span>
+        <span style="color:#1b5e20;cursor:pointer;font-weight:bold;" onclick="sortAndSupplyBag()">[一鍵補給丹藥]</span>
+      </div>
+      <div class="inv-bag-grid" id="inv-bag-grid"></div>
+    </div>
+  </div>
+
+  <!-- 3. 戰寵養成視窗 -->
+  <div class="fs-window" id="win-pets" style="top:90px;left:220px;width:330px;">
+    <div class="fs-win-header">
+      <span>戰寵管理與餵食系統 (P)</span>
+      <div class="fs-win-close" onclick="toggleWindow('win-pets')">✕</div>
+    </div>
+    <div class="fs-win-body" id="pet-win-content"></div>
+  </div>
+
+  <!-- 4. 助戰神仙與取神視窗 -->
+  <div class="fs-window" id="win-gods" style="top:90px;left:260px;width:350px;">
+    <div class="fs-win-header">
+      <span>守護神仙與神仙技能 (G)</span>
+      <div class="fs-win-close" onclick="toggleWindow('win-gods')">✕</div>
+    </div>
+    <div class="fs-win-body" id="god-win-content"></div>
+  </div>
+
+  <!-- 5. 武技仙術氣功陣法技能視窗 -->
+  <div class="fs-window" id="win-skills" style="top:85px;left:290px;width:380px;">
+    <div class="fs-win-header">
+      <span>各職業武技・仙術・氣功・陣法一覽 (S)</span>
+      <div class="fs-win-close" onclick="toggleWindow('win-skills')">✕</div>
+    </div>
+    <div class="fs-win-body" id="skill-win-content"></div>
+  </div>
+
+  <!-- 6. 任務記事與封神榜視窗 -->
+  <div class="fs-window" id="win-quests" style="top:95px;left:250px;width:350px;">
+    <div class="fs-win-header">
+      <span>仙界任務與封神星宿懸賞 (Q)</span>
+      <div class="fs-win-close" onclick="toggleWindow('win-quests')">✕</div>
+    </div>
+    <div class="fs-win-body" id="quest-win-content"></div>
+  </div>
+
+  <!-- 7. 謀士陣法與前後排站位視窗 -->
+  <div class="fs-window" id="win-formation" style="top:95px;left:280px;width:350px;">
+    <div class="fs-win-header">
+      <span>謀士陣法與前後排站位設定 (F)</span>
+      <div class="fs-win-close" onclick="toggleWindow('win-formation')">✕</div>
+    </div>
+    <div class="fs-win-body" id="formation-win-content"></div>
+  </div>
+
+  <!-- 8. 系統設定與單機存讀檔視窗 -->
+  <div class="fs-window" id="win-system" style="top:120px;left:350px;width:310px;">
+    <div class="fs-win-header">
+      <span>系統設定與單機存檔 (ESC)</span>
+      <div class="fs-win-close" onclick="toggleWindow('win-system')">✕</div>
+    </div>
+    <div class="fs-win-body" id="sys-win-content"></div>
+  </div>
+
+  <!-- 左下角：7色頻道按鈕與半透明聊天室 -->
+  <div id="chat-container">
+    <div id="chat-upper">
+      <div id="chat-channels">
+        <div class="ch-tab" style="background:#74c0fc;" onclick="filterChat('all')" title="全部頻道">全</div>
+        <div class="ch-tab" style="background:#ffe066;" onclick="filterChat('normal')" title="一般頻道">一</div>
+        <div class="ch-tab" style="background:#8ce99a;" onclick="filterChat('party')" title="隊伍頻道">隊</div>
+        <div class="ch-tab" style="background:#ffa8a8;" onclick="filterChat('guild')" title="洞府頻道">洞</div>
+        <div class="ch-tab" style="background:#e599f7;" onclick="filterChat('whisper')" title="密語頻道">密</div>
+        <div class="ch-tab" style="background:#ffc078;" onclick="filterChat('trade')" title="交易頻道">易</div>
+        <div class="ch-tab" style="background:#dee2e6;" onclick="filterChat('sys')" title="系統訊息">系</div>
+      </div>
+      <div id="chat-log"></div>
+    </div>
+  </div>
+
+  <!-- 底部：聊天輸入列 + 右下角 8 顆圓形系統功能按鈕 -->
+  <div id="bottom-bar">
+    <div id="chat-input-area">
+      <div class="chat-mini-btn" onclick="triggerBroadcast()" title="使用大聲公廣播">📢</div>
+      <div class="chat-Target-pill" onclick="cycleChatChannel()" id="chat-ch-pill">一般頻道 (~)</div>
+      <input type="text" id="chat-input" placeholder="輸入對話或指令 (如 /lv99, /gold, /boss) 按 Enter..." onkeydown="if(event.key==='Enter')sendChatMessage()">
+      <div class="chat-mini-btn" onclick="sendEmoji()" title="表情符號">😊</div>
+    </div>
+    <div id="sys-menu-bar">
+      <div class="sys-round-btn" id="btn-win-character" onclick="toggleWindow('win-character')"><span class="ico">🧘</span>人物</div>
+      <div class="sys-round-btn" id="btn-win-inventory" onclick="toggleWindow('win-inventory')"><span class="ico">🎒</span>物品</div>
+      <div class="sys-round-btn" id="btn-win-pets" onclick="toggleWindow('win-pets')"><span class="ico">🐾</span>戰寵</div>
+      <div class="sys-round-btn" id="btn-win-gods" onclick="toggleWindow('win-gods')"><span class="ico">🧚</span>神仙</div>
+      <div class="sys-round-btn" id="btn-win-skills" onclick="toggleWindow('win-skills')"><span class="ico">📜</span>技能</div>
+      <div class="sys-round-btn" id="btn-win-quests" onclick="toggleWindow('win-quests')"><span class="ico">🎋</span>任務</div>
+      <div class="sys-round-btn" id="btn-win-formation" onclick="toggleWindow('win-formation')"><span class="ico">☯️</span>陣法</div>
+      <div class="sys-round-btn" id="btn-win-system" onclick="toggleWindow('win-system')"><span class="ico">⚙️</span>系統</div>
+    </div>
+  </div>
+
+  <!-- 懸浮說明框 -->
+  <div id="fs-tooltip"></div>
+</div>
+
+<script>
+// ============================================================================
+// 《封神2：仙界傳 Online》核心資料庫 (100% 依據巴哈姆特百科與實機影片設定)
+// ============================================================================
+const CLASSES = {
+  swordsman: {
+    id: 'swordsman', name: '劍客', icon: '🥷', weaponType: '劍/刀/弓',
+    desc: '以物理攻擊與武技為主，搭配武吉、鄧嬋玉、楊戩等神仙施展破星斬與七星雷亟箭。',
+    baseStats: { vit: 18, str: 24, int: 10, agi: 16 },
+    defaultGod: 'dengchanyu'
+  },
+  taoist: {
+    id: 'taoist', name: '仙道', icon: '🧙‍♂️', weaponType: '法劍/拂塵',
+    desc: '操控金木水火土五行咒術，掌握「金剋木剋土剋水剋火」相剋原理施展大範圍仙術。',
+    baseStats: { vit: 14, str: 10, int: 26, agi: 18 },
+    defaultGod: 'jinguang'
+  },
+  healer: {
+    id: 'healer', name: '藥師', icon: '🧑‍⚕️', weaponType: '法杖/羽扇',
+    desc: '專精氣功、醫療復活、四基強化（夜叉/迅雷）與五大狀態異常（封/眠/毒/亂/石）。',
+    baseStats: { vit: 20, str: 12, int: 22, agi: 15 },
+    defaultGod: 'cihang'
+  },
+  strategist: {
+    id: 'strategist', name: '謀士', icon: '🪭', weaponType: '令旗/兵書',
+    desc: '施放鶴翼、鋒矢、五行與失傳/秘傳絕陣，使位於「陣眼」的同伴一回合行動兩次！',
+    baseStats: { vit: 18, str: 14, int: 20, agi: 22 },
+    defaultGod: 'jiangziya'
+  }
+};
+
+const GODS = {
+  wuji:       { id:'wuji', name:'武吉', class:'劍客神仙', icon:'🪓', elem:'木', lv:18, desc:'姜子牙門下弟子，擅長刀技破星斬與斧盾守護。', bonus:'物攻+15%' },
+  dengchanyu: { id:'dengchanyu', name:'鄧嬋玉', class:'劍客神仙', icon:'🏹', elem:'金', lv:25, desc:'擅長五光石暗器與弓技紅塵箭、七星雷亟箭。', bonus:'暴擊+15%、連擊率提升' },
+  yangjian:   { id:'yangjian', name:'楊戩', class:'劍客神仙', icon:'🔱', elem:'金', lv:40, desc:'玉鼎真人高徒，擅長三尖兩刃槍技與蒼穹劍罡。', bonus:'物攻+28%、防禦穿透' },
+  jinguang:   { id:'jinguang', name:'金光聖母', class:'仙道神仙', icon:'⚡', elem:'金', lv:22, desc:'十天君之一，專精金系天雷鳴、雷電怒濤與白虎之怒吼。', bonus:'金系仙術+25%' },
+  leizhenzi:  { id:'leizhenzi', name:'雷震子', class:'仙道神仙', icon:'🦅', elem:'木', lv:35, desc:'文王百子，背生風雷雙翅，專精木系風捲殘雲與青龍之呢喃。', bonus:'木系仙術+25%、速度+15' },
+  shengongbao:{ id:'shengongbao', name:'申公豹', class:'仙道神仙', icon:'🔥', elem:'火', lv:45, desc:'闡教叛徒，專精三昧真火、紅蓮火與朱雀之羽焰。', bonus:'全系仙術+30%' },
+  cihang:     { id:'cihang', name:'慈航道人', class:'藥師神仙', icon:'🪷', elem:'水', lv:24, desc:'闡教十二金仙，專精妙手回春、五氣朝元與白骨生肌。', bonus:'治療量+30%、MP消耗-15%' },
+  yunxiao:    { id:'yunxiao', name:'雲霄三姊妹', class:'藥師神仙', icon:'🌺', elem:'土', lv:38, desc:'三仙島散仙，專精混元金斗封印、毒蠱與極致四基強化。', bonus:'狀態命中+25%、全隊回魔' },
+  jiangziya:  { id:'jiangziya', name:'姜子牙', class:'謀士神仙', icon:'☯️', elem:'水', lv:30, desc:'封神榜執掌者，專精鶴翼陣、鋒矢陣與失傳陣・諸神黃昏。', bonus:'陣法效果+25%、陣眼二動' },
+  wenzhong:   { id:'wenzhong', name:'聞仲', class:'謀士神仙', icon:'👁️', elem:'金', lv:42, desc:'商朝太師，額生天眼，專精五行真陣與秘傳三・絕對領域。', bonus:'全隊防禦+25%、陣眼二動' }
+};
+
+// 技能資料 (完整收錄巴哈百科之劍客、仙道、藥師、謀士與大師技能)
+const SKILLS = [
+  // 劍客武技
+  { id:'k_jian1', name:'劍一 蒼穹訣・劍氣', short:'蒼穹劍氣', job:'swordsman', mp:5, target:'single', hits:1, mult:1.45, elem:'金', icon:'⚔️', desc:'單體中威力劍技，凝聚劍氣斬擊敵方。' },
+  { id:'k_dao2',  name:'刀二 破星斬・二連斬', short:'破星二連', job:'swordsman', mp:10, target:'single', hits:2, mult:0.95, elem:'火', icon:'🗡️', desc:'單體高威力刀技，連續揮砍目標2次。' },
+  { id:'k_qiang3',name:'槍三 颶風槍・幻虛', short:'颶風幻虛', job:'swordsman', mp:20, target:'row', hits:1, mult:1.35, elem:'木', icon:'🔱', desc:'橫排穿透槍技，對防禦狀態目標造成額外重創。' },
+  { id:'k_gong1', name:'弓一 紅塵箭・星火', short:'紅塵星火', job:'swordsman', mp:10, target:'single', hits:1, mult:1.25, elem:'火', status:'麻痺', icon:'🏹', desc:'弓系武技，一定機率造成目標麻痺無法行動。' },
+  { id:'k_qixing',name:'七星雷亟箭', short:'七星雷亟', job:'swordsman', mp:60, target:'multi7', hits:7, mult:0.68, elem:'金', status:'麻痺', icon:'🌩️', desc:'最高階弓系大師技！召喚七星紫雷連續打擊敵方陣列7次並附帶麻痺（還原影片演示）。' },
+  { id:'k_dao6',  name:'刀六 破星斬・斬神殺佛', short:'斬神殺佛', job:'swordsman', mp:50, target:'single', hits:4, mult:0.85, elem:'金', icon:'💥', desc:'劍客終極奧義，以毀天滅地之勢連斬目標4刀。' },
+
+  // 仙道五行法術
+  { id:'x_jin1',  name:'金一 天雷一', short:'天雷一', job:'taoist', mp:5, target:'single', hits:1, mult:1.5, elem:'金', icon:'⚡', desc:'金屬性單體仙術（金剋木，受五行屬性影響）。' },
+  { id:'x_mu4',   name:'木四 荊棘牆', short:'荊棘牆', job:'taoist', mp:20, target:'row', hits:1, mult:1.35, elem:'木', icon:'🌿', desc:'木屬性一排攻擊仙術，最多同時打擊5隻敵人（木剋土）。' },
+  { id:'x_shui5', name:'水五 冰冽晶', short:'冰冽晶', job:'taoist', mp:30, target:'triangle', hits:1, mult:1.55, elem:'水', icon:'❄️', desc:'水屬性正三角形範圍仙術，最多打擊3隻敵人（水剋火）。' },
+  { id:'x_huo5',  name:'火五 三昧火', short:'三昧火', job:'taoist', mp:30, target:'triangle', hits:1, mult:1.6, elem:'火', icon:'🔥', desc:'火屬性正三角範圍仙術，烈焰焚燒敵陣（火剋金）。' },
+  { id:'x_tu7',   name:'土七 大地震撼', short:'大地震撼', job:'taoist', mp:50, target:'row', hits:1, mult:1.7, elem:'土', icon:'🪨', desc:'土屬性高階一排仙術，崩裂大地重創敵排（土剋水）。' },
+  { id:'x_jin8',  name:'金八 白虎之怒吼', short:'白虎怒吼', job:'taoist', mp:60, target:'circle', hits:1, mult:1.85, elem:'金', icon:'🐯', desc:'金系八階圓形範圍極招，最多同時轟擊7隻敵人！' },
+
+  // 藥師回復/強化/狀態技
+  { id:'y_hui1',  name:'回一 醫療', short:'回一醫療', job:'healer', mp:5, target:'ally_single', heal:180, icon:'💚', desc:'回復我方單體生命值。' },
+  { id:'y_hui4',  name:'回四 五氣朝元', short:'五氣朝元', job:'healer', mp:45, target:'ally_all', heal:320, icon:'💖', desc:'回復我方全體角色與戰寵大量生命值。' },
+  { id:'y_zhi1',  name:'治癒一 白骨生肌', short:'白骨生肌', job:'healer', mp:20, target:'ally_all', heal:160, buff:'再生', icon:'✨', desc:'回復全體HP並賦予持續3回合回血狀態。' },
+  { id:'y_li1',   name:'力一 夜叉', short:'力一夜叉', job:'healer', mp:10, target:'ally_all', buff:'腕力+40', icon:'💪', desc:'提升我方全體腕力與物理攻擊力（神仙每10級追加效果）。' },
+  { id:'y_du3',   name:'毒三 顫慄一擊', short:'顫慄毒擊', job:'healer', mp:30, target:'triangle', hits:1, mult:1.25, elem:'木', status:'中毒', icon:'☠️', desc:'正三角範圍毒擊，使敵人每回合損失10%生命。' },
+  { id:'y_xi3',   name:'吸血三 幽魂嗜血', short:'幽魂嗜血', job:'healer', mp:45, target:'single', hits:1, mult:1.75, elem:'水', drain:0.35, icon:'🦇', desc:'藥師攻擊魔技，重創敵人並吸收35%傷害轉為自身HP。' },
+
+  // 謀士陣法技 (核心特色：陣眼兩次行動！)
+  { id:'m_heyi',  name:'鶴翼陣二', short:'鶴翼陣', job:'strategist', mp:15, target:'ally_all', formation:'鶴翼陣', icon:'🪽', desc:'展開鶴翼陣：全體速度+30，且位於陣眼的主角每回合可行動2次！' },
+  { id:'m_fengshi',name:'鋒矢陣二', short:'鋒矢陣', job:'strategist', mp:15, target:'ally_all', formation:'鋒矢陣', icon:'🏹', desc:'展開鋒矢陣：全體腕力+35、物攻提升，陣眼主角每回合可行動2次！' },
+  { id:'m_heng',  name:'衡軛陣三', short:'衡軛陣', job:'strategist', mp:20, target:'ally_all', formation:'衡軛陣', icon:'🛡️', desc:'展開衡軛陣：每回合自動回復全體HP 120點，陣眼主角可行動2次！' },
+  { id:'m_jin4',  name:'金陣四 白虎', short:'金陣白虎', job:'strategist', mp:40, target:'ally_all', formation:'金陣・白虎', icon:'🐅', desc:'提高全體金屬性80點、物理附加金傷、免疫神仙封，陣眼可行動2次！' },
+  { id:'m_shichuan',name:'失傳三 諸神黃昏', short:'諸神黃昏', job:'strategist', mp:80, target:'ally_all', formation:'諸神黃昏', icon:'🌅', desc:'傳說失傳絕陣！全體體力/腕力+60、物傷減半、特技耗魔減半，全體二動！' },
+  { id:'m_michuan',name:'秘傳三 絕對領域', short:'絕對領域', job:'strategist', mp:80, target:'ally_all', formation:'絕對領域', icon:'🔮', desc:'傳說秘傳絕陣！全體智力/速度+60、魔傷減半、仙術耗魔減半，全體二動！' }
+];
+
+// 四大經典地圖設定 (楓華鎮、鴻濛境、截仙遺址、果力村)
+const MAPS = {
+  fenghua: {
+    id: 'fenghua', name: '楓華鎮', width: 1600, height: 1200,
+    theme: 'town', bgBase: '#78827a', roadColor: '#949c96',
+    desc: '《封神2》新手誕生與繁華主城，街道遍植紅楓，設有姜子牙木像與封神台。',
+    portals: [
+      { x: 1450, y: 600, toMap: 'hongmeng', toX: 220, toY: 220, label: '前往 鴻濛境' },
+      { x: 800, y: 1100, toMap: 'jiexian', toX: 250, toY: 250, label: '前往 截仙遺址' },
+      { x: 180, y: 260, toMap: 'guoli', toX: 300, toY: 300, label: '傳送 果力村' }
+    ],
+    npcs: [
+      { id:'jiang_statue', name:'姜子牙木像', title:'取神與轉生導師', x: 760, y: 460, icon:'🗿', bubble:'誠心參拜，即可領悟神仙技能與封神轉生！', action:'god_statue' },
+      { id:'trainer', name:'楓華訓獸師', title:'戰寵與座騎管理', x: 520, y: 580, icon:'🤠', bubble:'想把抓到的Lv.1寶寶培育成極品戰寵嗎？來找我吧！', action:'trainer' },
+      { id:'shop_npc', name:'楓華藥鋪掌櫃', title:'丹藥與封印卡補給', x: 960, y: 560, icon:'🧔', bubble:'金創藥、順氣藥、抓寵必備封印卡、金鐘鶴應有盡有！', action:'shop' },
+      { id:'caobudao', name:'曹布道', title:'新手任務NPC', x: 640, y: 740, icon:'👦', bubble:'來跟我玩捉迷藏吧！找到我有豐厚經驗跟仙幣喔！', action:'quest_npc' },
+      { id:'star_1', name:'地魁星 (Level: 10)', title:'封神星宿', x: 1120, y: 480, icon:'👹', isStarBoss: true, lv: 10, bubble:'吾乃封神星宿，歡迎挑戰！', monsterKey:'star_dikui' },
+      { id:'star_2', name:'地煞星 (Level: 35)', title:'封神星宿', x: 1160, y: 780, icon:'👺', isStarBoss: true, lv: 35, bubble:'吾乃封神星宿，歡迎挑戰！', monsterKey:'star_disha' }
+    ],
+    monsters: [] // 城鎮內無一般野怪，可挑戰星宿
+  },
+  hongmeng: {
+    id: 'hongmeng', name: '鴻濛境', width: 2000, height: 1500,
+    theme: 'field_lush', bgBase: '#5da644', roadColor: '#c79c6e',
+    desc: '楓華鎮外的廣袤仙境，有紅楓林、翠竹亭、黃金沙灘與上古大禹治水遺跡（還原影片 KLYLYANy3mU）。',
+    portals: [
+      { x: 160, y: 180, toMap: 'fenghua', toX: 1320, toY: 600, label: '返回 楓華鎮' },
+      { x: 1820, y: 1320, toMap: 'jiexian', toX: 220, toY: 260, label: '前往 截仙遺址' }
+    ],
+    npcs: [
+      { id:'tudi_hm', name:'鴻濛土地公', title:'仙界引路人', x: 350, y: 280, icon:'👴', bubble:'白字怪物與Lv.1寶寶都可以用「封印卡」捕捉成戰寵喔！', action:'heal' },
+      { id:'stone_tablet', name:'大禹治水碑', title:'上古靈碑', x: 1050, y: 680, icon:'🪨', bubble:'石碑上刻著上古五行相剋銘文：金剋木、木剋土、土剋水、水剋火、火剋金。', action:'heal' }
+    ],
+    monsters: [
+      { key:'duck', name:'絨毛鴨', lv:1, hp:55, atk:12, def:5, agi:10, elem:'土', icon:'🦆', exp:18, capturable:true, skill:'劍一 蒼穹訣', drops:['鴨卡','絨毛鴨的蛋','金創藥'] },
+      { key:'rabbit', name:'仙兔', lv:4, hp:95, atk:18, def:8, agi:14, elem:'金', icon:'🐇', exp:32, capturable:true, skill:'弓一 紅塵箭', drops:['野兔卡','兔皮','仿製黃寶石'] },
+      { key:'guicao', name:'鬼草', lv:4, hp:110, atk:20, def:9, agi:15, elem:'木', icon:'🌱', exp:38, capturable:true, skill:'木一 龍捲一', drops:['鬼草','香菇卡','順氣藥'] },
+      { key:'fox', name:'仙狐', lv:6, hp:145, atk:26, def:12, agi:18, elem:'金', icon:'🦊', exp:52, capturable:true, skill:'刀一 破星斬', drops:['狐狸卡','狐爪','封印卡'] },
+      { key:'mushroom', name:'靈草菇', lv:8, hp:190, atk:30, def:15, agi:17, elem:'木', icon:'🍄', exp:68, capturable:true, skill:'毒一 毒擊', drops:['香菇卡','治傷藥','金鐘鶴'] },
+      { key:' crane', name:'雲鶴', lv:12, hp:260, atk:38, def:20, agi:24, elem:'水', icon:'🦢', exp:95, capturable:true, skill:'金一 天雷一', drops:['鶴卡','發光的羽毛','天然藍寶石'] },
+      { key:'treant', name:'千年樹妖', lv:12, hp:770, atk:52, def:30, agi:22, elem:'木', icon:'🌳', exp:220, capturable:false, skill:'木四 荊棘牆', drops:['樹妖卡','1階武器零件','長生露'] }
+    ]
+  },
+  jiexian: {
+    id: 'jiexian', name: '截仙遺址', width: 1800, height: 1400,
+    theme: 'ruins', bgBase: '#8c7a5b', roadColor: '#a89474',
+    desc: '昔日截教仙人鬥法遺留的荒原古蹟，石怪成群結隊出現（1:1 還原影片 bA8qY6fsEcA 七星雷亟箭練功場）。',
+    portals: [
+      { x: 160, y: 200, toMap: 'fenghua', toX: 800, toY: 980, label: '返回 楓華鎮' },
+      { x: 1620, y: 1180, toMap: 'guoli', toX: 240, toY: 320, label: '前往 果力村' }
+    ],
+    npcs: [
+      { id:'jiexian_monk', name:'截教雲遊仙', title:'陣法試煉官', x: 320, y: 310, icon:'🧙', bubble:'此處的「石怪」一次會出現10隻以上，最適合測試範圍仙術與七星雷亟箭！', action:'heal' },
+      { id:'star_3', name:'天機星 (Level: 45)', title:'封神星宿', x: 1200, y: 700, icon:'👹', isStarBoss: true, lv: 45, bubble:'吾乃封神星宿，歡迎挑戰！', monsterKey:'star_tianji' }
+    ],
+    monsters: [
+      { key:'shiguai', name:'石怪', lv:10, hp:480, atk:36, def:32, agi:15, elem:'土', icon:'🗿', exp:120, capturable:true, swarm:true, skill:'土一 地突一', drops:['石怪卡','聖潔白金','仿製藍寶石'] },
+      { key:'huomei', name:'小火魅', lv:12, hp:240, atk:42, def:18, agi:35, elem:'火', icon:'🔥', exp:88, capturable:true, skill:'火一 炎球一', drops:['鬼魅卡','紅寶石','順氣藥'] },
+      { key:'banyao', name:'負刀半妖', lv:15, hp:320, atk:50, def:24, agi:38, elem:'金', icon:'🐺', exp:115, capturable:true, skill:'刀二 二連斬', drops:['半妖卡','破星長刀','金創藥'] },
+      { key:'huojia', name:'火甲兵', lv:18, hp:410, atk:58, def:35, agi:30, elem:'火', icon:'🤖', exp:145, capturable:true, skill:'槍三 颶風槍', drops:['甲兵卡','赤銅鎧甲','封印卡'] }
+    ]
+  },
+  guoli: {
+    id: 'guoli', name: '果力村', width: 1800, height: 1400,
+    theme: 'fruit_village', bgBase: '#7ec850', roadColor: '#d4a373',
+    desc: '第三資料片「幸福果力島」主城與北方田園（1:1 還原影片 D5uJEVTPCf8 紅蘋果屋、蘑菇屋、竹筍祭壇與茄子田）。',
+    portals: [
+      { x: 180, y: 260, toMap: 'fenghua', toX: 280, toY: 300, label: '返回 楓華鎮' },
+      { x: 1620, y: 260, toMap: 'jiexian', toX: 1500, toY: 1100, label: '前往 截仙遺址' }
+    ],
+    npcs: [
+      { id:'guoli_chief', name:'果力大法師', title:'果力島長老', x: 650, y: 520, icon:'🎅', bubble:'歡迎來到幸福果力村！小心農田裡的茄子精與九黎族戰士！', action:'heal' },
+      { id:'star_4', name:'破軍星 (Level: 65)', title:'封神星宿', x: 1080, y: 460, icon:'👿', isStarBoss: true, lv: 65, bubble:'吾乃封神星宿，歡迎挑戰！', monsterKey:'star_pojun' },
+      { id:'star_5', name:'天猛星 (Level: 29)', title:'封神星宿', x: 820, y: 860, icon:'👺', isStarBoss: true, lv: 29, bubble:'吾乃封神星宿，歡迎挑戰！', monsterKey:'star_tianmeng' }
+    ],
+    monsters: [
+      { key:'eggplant', name:'茄子精', lv:25, hp:580, atk:68, def:35, agi:42, elem:'木', icon:'🍆', exp:210, capturable:true, skill:'木四 荊棘牆', drops:['茄子王卡','果力鮮果','大紅藥水'] },
+      { key:'strawberry', name:'草莓跳跳', lv:28, hp:650, atk:74, def:38, agi:48, elem:'火', icon:'🍓', exp:245, capturable:true, skill:'火五 三昧火', drops:['草莓卡','甜美果露','大藍藥水'] },
+      { key:'jiuli', name:'九黎戰士', lv:35, hp:920, atk:96, def:52, agi:55, elem:'金', icon:'👹', exp:360, capturable:true, skill:'金八 白虎之怒吼', drops:['九黎戰寵卡','九黎巨劍','天然鑽石'] },
+      { key:'mecha', name:'無敵鐵金剛', lv:40, hp:1350, atk:115, def:75, agi:45, elem:'金', icon:'🦾', exp:480, capturable:true, skill:'七星雷亟箭', drops:['機甲核心','二代神裝禮盒','封印卡'] }
+    ]
+  }
+};
+
+const STAR_BOSSES = {
+  star_dikui:   { key:'star_dikui', name:'地魁星', lv:10, hp:1200, atk:45, def:25, agi:28, elem:'土', icon:'👹', exp:450, capturable:false, skill:'土七 大地震撼', drops:['星辰獎章','斬仙飛刀','大紅藥水'] },
+  star_tianmeng:{ key:'star_tianmeng', name:'天猛星', lv:29, hp:2800, atk:85, def:45, agi:48, elem:'火', icon:'👺', exp:1200, capturable:false, skill:'火五 三昧火', drops:['星辰獎章','火龍神劍','天然鑽石'] },
+  star_disha:   { key:'star_disha', name:'地煞星', lv:35, hp:3600, atk:105, def:55, agi:55, elem:'金', icon:'👺', exp:1600, capturable:false, skill:'七星雷亟箭', drops:['碎星獎章','玄鐵重鎧','長生露'] },
+  star_tianji:  { key:'star_tianji', name:'天機星', lv:45, hp:5200, atk:135, def:70, agi:68, elem:'水', icon:'👹', exp:2600, capturable:false, skill:'金八 白虎之怒吼', drops:['碎星獎章','太極法袍','天賦仙丹'] },
+  star_pojun:   { key:'star_pojun', name:'破軍星', lv:65, hp:9800, atk:195, def:100, agi:85, elem:'金', icon:'👿', exp:5500, capturable:false, skill:'刀六 破星斬・斬神殺佛', drops:['封神榜聖令','誅仙鎮魂劍','九轉仙丹'] }
+};
+</script>
+
+<script>
+// ============================================================================
+// 玩家狀態、裝備、道具欄、戰寵、任務與音效引擎
+// ============================================================================
+const STATE = {
+  mode: 'field', // 'field' or 'battle'
+  hero: {
+    name: '氣似雲來', title: '封神修真者', job: 'swordsman', reborn: 0,
+    lv: 15, exp: 120, maxExp: 300,
+    hp: 680, maxHp: 680, mp: 360, maxMp: 360,
+    vit: 28, str: 42, int: 24, agi: 32, freePts: 10,
+    elem: { '金': 50, '木': 20, '水': 10, '火': 20, '土': 0 },
+    gold: 28386257,
+    map: 'hongmeng', x: 420, y: 310, targetX: 420, targetY: 310,
+    dir: 1, walkFrame: 0,
+    mount: { active: true, name: '火眼金睛獸', icon: '🦁', speedBonus: 1.55 },
+    godId: 'dengchanyu',
+    formation: '鶴翼陣',
+    row: 'back', // 主角站後排，戰寵站前排
+    autoEncounter: false
+  },
+  equips: {
+    head:   { name: '紫金冠', icon: '👑', type: '頭盔', desc: '防禦+25 體力+8' },
+    neck:   { name: '太乙護符', icon: '📿', type: '項鍊', desc: '全抗性+15 智力+10' },
+    weapon: { name: '雷鳴赤龍劍', icon: '⚔️', type: '武器', desc: '攻擊+95 金屬性+30' },
+    ring:   { name: '乾坤戒', icon: '💍', type: '戒指', desc: '暴擊率+12% 腕力+12' },
+    armor:  { name: '八卦仙衣', icon: '🥋', type: '鎧甲', desc: '防禦+68 HP上限+200' },
+    wrist:  { name: '龍鱗護腕', icon: '🧤', type: '護腕', desc: '命中+15 攻擊+22' },
+    boots:  { name: '踏雲靴', icon: '👢', type: '鞋子', desc: '速度+25 閃避+10%' },
+    talisman:{ name: '番天印', icon: '🧱', type: '法寶', desc: '神仙技能威力+20%' }
+  },
+  bag: [
+    { id:'gold_crane', name:'金鐘鶴', qty:18, icon:'🕊️', type:'傳送道具', desc:'金光閃閃送我回楓華鎮' },
+    { id:'hp_pot', name:'金創藥(大)', qty:50, icon:'🧪', type:'恢復丹藥', desc:'立即恢復角色與戰寵 350 點 HP', healHp:350 },
+    { id:'mp_pot', name:'順氣藥(大)', qty:50, icon:'⚗️', type:'恢復丹藥', desc:'立即恢復角色與戰寵 250 點 MP', healMp:250 },
+    { id:'seal_card', name:'封印卡', qty:35, icon:'🃏', type:'捕抓道具', desc:'戰鬥中點選白字怪物或Lv.1寶寶即可進行捕捉！' },
+    { id:'pet_food', name:'靈獸飼料', qty:25, icon:'🍖', type:'餵食素材', desc:'餵食戰寵與座騎，恢復HP/MP並提升忠誠度20點' },
+    { id:'exp_pill', name:'九轉仙丹', qty:5, icon:'💊', type:'修真靈藥', desc:'服用後直接提升主角、神仙與戰寵 1 個等級！' },
+    { id:'card_duck', name:'鬼草卡片', qty:3, icon:'🎴', type:'怪物卡片', desc:'鴻濛境打怪掉落的收集卡片，使用可換取仙幣與屬性加成' },
+    { id:'gem_blue', name:'天然藍寶石', qty:12, icon:'💎', type:'鍛造寶石', desc:'封神臺與鴻濛境打寶獲得的珍貴寶石' },
+    { id:'weapon_box', name:'二代神裝禮盒', qty:2, icon:'🎁', type:'珍稀寶箱', desc:'開啟後隨機獲得超精淬二代武器或神仙套裝！' },
+    { id:'mount_whistle', name:'神獸號角', qty:1, icon:'📯', type:'座騎道具', desc:'切換騎乘：火眼金睛獸 / 崑崙仙鶴 / 果力飛碟' }
+  ],
+  pets: [
+    { id: 1, name: '鬼草寶寶', icon: '🌱', lv: 16, hp: 420, maxHp: 420, mp: 180, maxMp: 180, atk: 55, def: 28, agi: 36, elem: '木', loyalty: 95, skill: '木四 荊棘牆', active: true },
+    { id: 2, name: '強化迷你鴨', icon: '🦆', lv: 12, hp: 310, maxHp: 310, mp: 120, maxMp: 120, atk: 42, def: 22, agi: 33, elem: '金', loyalty: 88, skill: '弓一 紅塵箭', active: false },
+    { id: 3, name: '九黎戰士寵', icon: '👹', lv: 35, hp: 980, maxHp: 980, mp: 350, maxMp: 350, atk: 118, def: 65, agi: 58, elem: '金', loyalty: 100, skill: '刀二 二連斬', active: false }
+  ],
+  quests: [
+    { id:'q1', name:'【新手】楓華鎮姜子牙木像參拜', desc:'前往楓華鎮中央點擊「姜子牙木像」領取神仙庇佑。', progress:0, goal:1, reward:'經驗+200、仙幣+50,000', done:false },
+    { id:'q2', name:'【捕抓】鴻濛境捕捉第一隻戰寵', desc:'在鴻濛境進入戰鬥，使用「封印卡」成功捕捉任意白字怪或Lv.1寶寶。', progress:0, goal:1, reward:'經驗+450、九轉仙丹x2', done:false },
+    { id:'q3', name:'【練功】截仙遺址討伐石怪大軍', desc:'於截仙遺址施展範圍技能或七星雷亟箭擊敗 10 隻石怪。', progress:0, goal:10, reward:'經驗+1,200、二代神裝禮盒x1', done:false },
+    { id:'q4', name:'【懸賞】挑戰封神星宿（地魁/天猛/破軍）', desc:'在地圖上點擊帶有對話框的「封神星宿」並贏得戰鬥勝利。', progress:0, goal:1, reward:'經驗+3,000、星辰獎章x3', done:false }
+  ],
+  hotkeyPage: 1,
+  hotkeys: [
+    { key:'F1', type:'item', id:'hp_pot', icon:'🧪', name:'金創藥' },
+    { key:'F2', type:'item', id:'mp_pot', icon:'⚗️', name:'順氣藥' },
+    { key:'F3', type:'item', id:'seal_card', icon:'🃏', name:'封印卡' },
+    { key:'F4', type:'item', id:'gold_crane', icon:'🕊️', name:'金鐘鶴' },
+    { key:'F5', type:'skill', id:'k_qixing', icon:'🌩️', name:'七星雷亟' },
+    { key:'F6', type:'skill', id:'x_jin8', icon:'🐯', name:'白虎怒吼' },
+    { key:'F7', type:'skill', id:'y_hui4', icon:'💖', name:'五氣朝元' },
+    { key:'F8', type:'skill', id:'m_heyi', icon:'🪽', name:'鶴翼陣' },
+    { key:'F9', type:'action', id:'mount', icon:'🦁', name:'座騎切換' },
+    { key:'F10', type:'action', id:'auto_enc', icon:'⚔️', name:'原地遇敵' }
+  ],
+  soundEnabled: true,
+  fieldEntities: [],
+  clickRipples: [],
+  floatingTexts: []
+};
+
+// 簡易 WebAudio 古風音效合成器
+const SFX = {
+  ctx: null,
+  init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+  play(type) {
+    if (!STATE.soundEnabled) return;
+    try {
+      this.init();
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.connect(gain); gain.connect(this.ctx.destination);
+      if (type === 'click') {
+        osc.frequency.setValueAtTime(660, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.06);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.06);
+        osc.start(now); osc.stop(now + 0.06);
+      } else if (type === 'hit') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(55, now + 0.14);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.14);
+        osc.start(now); osc.stop(now + 0.14);
+      } else if (type === 'thunder') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.exponentialRampToValueAtTime(90, now + 0.22);
+        gain.gain.setValueAtTime(0.14, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.22);
+        osc.start(now); osc.stop(now + 0.22);
+      } else if (type === 'heal') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.25);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+        osc.start(now); osc.stop(now + 0.25);
+      } else if (type === 'win') {
+        [523, 659, 784, 1046].forEach((f, idx) => {
+          const o = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          o.connect(g); g.connect(this.ctx.destination);
+          o.frequency.setValueAtTime(f, now + idx * 0.09);
+          g.gain.setValueAtTime(0.09, now + idx * 0.09);
+          g.gain.linearRampToValueAtTime(0.005, now + idx * 0.09 + 0.2);
+          o.start(now + idx * 0.09); o.stop(now + idx * 0.09 + 0.2);
+        });
+      }
+    } catch (e) {}
+  }
+};
+
+function addLog(text, cls = 'log-sys') {
+  const box = document.getElementById('chat-log');
+  const div = document.createElement('div');
+  div.className = 'log-line ' + cls;
+  div.textContent = text;
+  box.appendChild(div);
+  while (box.children.length > 60) box.removeChild(box.firstChild);
+  box.scrollTop = box.scrollHeight;
+}
+
+function getActivePet() {
+  return STATE.pets.find(p => p.active) || STATE.pets[0];
+}
+function getActiveGod() {
+  return GODS[STATE.hero.godId] || GODS.dengchanyu;
+}
+</script>
+
+<script>
+// ============================================================================
+// 場景繪製引擎 (1:1 還原鴻濛境紅楓林/竹林/沙灘、楓華鎮、截仙遺址、果力村蘋果屋與太極台)
+// ============================================================================
+const canvas = document.getElementById('main-canvas');
+const ctx = canvas.getContext('2d');
+const mmCanvas = document.getElementById('minimap-canvas');
+const mmCtx = mmCanvas.getContext('2d');
+
+let mapScenery = [];
+
+function loadMap(mapId, tx, ty) {
+  const m = MAPS[mapId];
+  if (!m) return;
+  STATE.hero.map = mapId;
+  if (tx !== undefined) { STATE.hero.x = tx; STATE.hero.targetX = tx; }
+  if (ty !== undefined) { STATE.hero.y = ty; STATE.hero.targetY = ty; }
+  document.getElementById('mm-map-title').textContent = m.name;
+  addLog(`[系統] 進入地圖：【${m.name}】— ${m.desc}`, 'log-sys');
+
+  // 產生景物 (紅楓樹、竹林、椰子樹、蘋果屋、石碑、花草)
+  mapScenery = [];
+  const seed = mapId.charCodeAt(0) * 137;
+  for (let i = 0; i < 65; i++) {
+    const sx = 120 + ((i * 263 + seed) % (m.width - 240));
+    const sy = 120 + ((i * 197 + seed * 3) % (m.height - 240));
+    if (Math.hypot(sx - STATE.hero.x, sy - STATE.hero.y) < 110) continue;
+    let kind = 'maple';
+    if (m.theme === 'town') {
+      kind = (i % 5 === 0) ? 'house_town' : (i % 3 === 0 ? 'maple_red' : 'lantern');
+    } else if (m.theme === 'field_lush') {
+      if (sx > m.width * 0.65) kind = (i % 2 === 0) ? 'palm' : 'red_flower';
+      else if (sy < m.height * 0.4) kind = (i % 2 === 0) ? 'bamboo' : 'pavilion';
+      else kind = (i % 3 === 0) ? 'maple_red' : (i % 3 === 1 ? 'maple_yellow' : 'red_flower');
+    } else if (m.theme === 'ruins') {
+      kind = (i % 3 === 0) ? 'pillar' : (i % 2 === 0 ? 'rock' : 'dead_tree');
+    } else if (m.theme === 'fruit_village') {
+      kind = (i % 6 === 0) ? 'apple_house' : (i % 5 === 0 ? 'mushroom_house' : (i % 2 === 0 ? 'eggplant_crop' : 'strawberry_crop'));
+    }
+    mapScenery.push({ x: sx, y: sy, kind });
+  }
+
+  // 產生野怪實體 (含白字怪與 Lv.1 寶寶怪)
+  STATE.fieldEntities = [];
+  if (m.monsters && m.monsters.length > 0) {
+    for (let i = 0; i < 18; i++) {
+      const tpl = m.monsters[i % m.monsters.length];
+      const isBaby = tpl.capturable && (i % 4 === 0);
+      STATE.fieldEntities.push({
+        id: 'mob_' + i,
+        tpl: tpl,
+        name: isBaby ? `${tpl.name} Lv.1寶寶` : `${tpl.name} Lv.${tpl.lv}`,
+        isBaby: isBaby,
+        x: 200 + ((i * 311 + 99) % (m.width - 360)),
+        y: 180 + ((i * 251 + 77) % (m.height - 320)),
+        vx: (i % 2 === 0 ? 0.5 : -0.5),
+        vy: (i % 3 === 0 ? 0.35 : -0.35),
+        timer: i * 25
+      });
+    }
+  }
+}
+
+function drawYinYangPlatform(g, cx, cy, r) {
+  // 八卦封神台底座 (1:1 還原果力村與楓華鎮的太極石台)
+  g.save();
+  g.translate(cx, cy);
+  g.scale(1, 0.55);
+  g.fillStyle = '#a83228';
+  g.beginPath(); g.arc(0, 8, r + 14, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#e6b85c'; g.lineWidth = 4; g.stroke();
+
+  g.fillStyle = '#f5e8c7';
+  g.beginPath(); g.arc(0, 0, r, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#1d242b';
+  g.beginPath(); g.arc(0, 0, r, -Math.PI / 2, Math.PI / 2); g.fill();
+  g.fillStyle = '#f5e8c7';
+  g.beginPath(); g.arc(0, -r / 2, r / 2, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#1d242b';
+  g.beginPath(); g.arc(0, r / 2, r / 2, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#1d242b';
+  g.beginPath(); g.arc(0, -r / 2, r / 6, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#f5e8c7';
+  g.beginPath(); g.arc(0, r / 2, r / 6, 0, Math.PI * 2); g.fill();
+  g.restore();
+}
+
+function drawSceneryItem(g, item, sx, sy) {
+  g.save();
+  g.translate(sx, sy);
+  // 陰影
+  g.fillStyle = 'rgba(0,0,0,0.25)';
+  g.beginPath(); g.ellipse(0, 6, 24, 10, 0, 0, Math.PI * 2); g.fill();
+
+  switch (item.kind) {
+    case 'maple_red':
+    case 'maple_yellow': {
+      g.fillStyle = '#5c3a21';
+      g.fillRect(-5, -28, 10, 32);
+      const c1 = item.kind === 'maple_red' ? '#c93b2b' : '#d99b26';
+      const c2 = item.kind === 'maple_red' ? '#e85d3f' : '#f2c14e';
+      g.fillStyle = c1;
+      g.beginPath(); g.arc(0, -45, 26, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(-18, -36, 18, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(18, -36, 18, 0, Math.PI * 2); g.fill();
+      g.fillStyle = c2;
+      g.beginPath(); g.arc(-6, -50, 16, 0, Math.PI * 2); g.fill();
+      break;
+    }
+    case 'bamboo': {
+      for (let b = -10; b <= 10; b += 10) {
+        g.fillStyle = '#2d6a3e';
+        g.fillRect(b - 2, -65, 4, 68);
+        g.fillStyle = '#52b788';
+        g.beginPath(); g.ellipse(b + 6, -55, 10, 4, -0.4, 0, Math.PI * 2); g.fill();
+        g.beginPath(); g.ellipse(b - 6, -40, 10, 4, 0.4, 0, Math.PI * 2); g.fill();
+      }
+      break;
+    }
+    case 'palm': {
+      g.strokeStyle = '#8c5a32'; g.lineWidth = 7;
+      g.beginPath(); g.moveTo(0, 4); g.quadraticCurveTo(8, -28, 4, -56); g.stroke();
+      g.fillStyle = '#3b8c2a';
+      for (let a = 0; a < 6; a++) {
+        g.save(); g.translate(4, -56); g.rotate(a * Math.PI / 3);
+        g.beginPath(); g.ellipse(18, 0, 18, 5, 0, 0, Math.PI * 2); g.fill();
+        g.restore();
+      }
+      break;
+    }
+    case 'red_flower': {
+      // 鴻濛境招牌紅燈籠花 (1:1 還原影片 KLYLYANy3mU 隨處可見的垂吊紅花)
+      g.strokeStyle = '#2e7d32'; g.lineWidth = 3;
+      g.beginPath(); g.moveTo(0, 4); g.lineTo(0, -28); g.stroke();
+      g.fillStyle = '#d90429';
+      g.beginPath(); g.arc(-8, -24, 6, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(8, -20, 6, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(0, -32, 6, 0, Math.PI * 2); g.fill();
+      break;
+    }
+    case 'apple_house': {
+      // 果力村招牌巨型紅蘋果屋 (1:1 還原影片 D5uJEVTPCf8 00:12)
+      g.fillStyle = '#c1121f';
+      g.beginPath(); g.arc(0, -28, 36, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#e63946';
+      g.beginPath(); g.arc(-10, -36, 20, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#4a2505';
+      g.beginPath(); g.arc(0, 4, 14, Math.PI, 0); g.fill();
+      break;
+    }
+    case 'mushroom_house': {
+      g.fillStyle = '#f5ebe0'; g.fillRect(-18, -26, 36, 28);
+      g.fillStyle = '#d62828';
+      g.beginPath(); g.arc(0, -26, 30, Math.PI, 0); g.fill();
+      g.fillStyle = '#fcbf49';
+      g.beginPath(); g.arc(-12, -38, 5, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(10, -35, 6, 0, Math.PI * 2); g.fill();
+      break;
+    }
+    case 'house_town': {
+      g.fillStyle = '#d4b483'; g.fillRect(-34, -42, 68, 44);
+      g.fillStyle = '#3d5a80';
+      g.beginPath(); g.moveTo(-42, -40); g.lineTo(0, -68); g.lineTo(42, -40); g.closePath(); g.fill();
+      g.strokeStyle = '#e5943c'; g.lineWidth = 2; g.stroke();
+      break;
+    }
+    default: {
+      g.fillStyle = '#7f8c8d';
+      g.beginPath(); g.arc(0, -14, 16, 0, Math.PI * 2); g.fill();
+      break;
+    }
+  }
+  g.restore();
+}
+
+function updateAndDrawField(dt) {
+  const m = MAPS[STATE.hero.map];
+  const h = STATE.hero;
+
+  // 移動角色
+  const dx = h.targetX - h.x;
+  const dy = h.targetY - h.y;
+  const dist = Math.hypot(dx, dy);
+  const speed = (h.mount.active ? 225 : 150) * dt;
+  if (dist > 4) {
+    h.x += (dx / dist) * Math.min(dist, speed);
+    h.y += (dy / dist) * Math.min(dist, speed);
+    h.dir = dx >= 0 ? 1 : -1;
+    h.walkFrame += dt * 10;
+
+    // 檢查傳送陣
+    for (const p of m.portals) {
+      if (Math.hypot(h.x - p.x, h.y - p.y) < 38) {
+        SFX.play('heal');
+        loadMap(p.toMap, p.toX, p.toY);
+        return;
+      }
+    }
+  }
+
+  // 原地自動遇敵模式 (F10)
+  if (h.autoEncounter && m.monsters && m.monsters.length > 0) {
+    if (Math.random() < 0.018) {
+      const tpl = m.monsters[Math.floor(Math.random() * m.monsters.length)];
+      startBattle(tpl, false);
+      return;
+    }
+  }
+
+  // 攝影機置中於主角
+  const camX = Math.max(0, Math.min(m.width - canvas.width, h.x - canvas.width / 2));
+  const camY = Math.max(0, Math.min(m.height - canvas.height, h.y - canvas.height / 2));
+
+  // 1. 繪製地面背景與道路紋理
+  ctx.fillStyle = m.bgBase;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 繪製自然地貌色塊 (沙灘、草地、石板路)
+  ctx.save();
+  ctx.translate(-camX, -camY);
+
+  if (m.theme === 'town') {
+    // 楓華鎮石板磚紋理
+    ctx.strokeStyle = 'rgba(50,55,52,0.35)';
+    ctx.lineWidth = 1;
+    for (let gx = 0; gx < m.width; gx += 48) {
+      ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, m.height); ctx.stroke();
+    }
+    for (let gy = 0; gy < m.height; gy += 32) {
+      ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(m.width, gy); ctx.stroke();
+    }
+  } else {
+    // 鄉間黃土道路
+    ctx.strokeStyle = m.roadColor;
+    ctx.lineWidth = 95;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(160, 180);
+    ctx.lineTo(750, 520);
+    ctx.lineTo(1250, 680);
+    ctx.lineTo(m.width - 200, m.height - 200);
+    ctx.stroke();
+
+    if (m.id === 'hongmeng') {
+      // 東岸黃金沙灘與碧海
+      ctx.fillStyle = '#e0b882';
+      ctx.beginPath(); ctx.ellipse(m.width - 220, m.height / 2, 340, 650, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#2887b8';
+      ctx.fillRect(m.width - 110, 0, 110, m.height);
+    }
+  }
+
+  // 繪製封神太極八卦台
+  if (m.id === 'fenghua' || m.id === 'guoli') {
+    drawYinYangPlatform(ctx, 760, 520, 58);
+  }
+
+  // 2. 繪製藍色/金色發光傳送陣 (1:1 還原影片 00:01 & 00:40 傳送點)
+  const pulse = Math.sin(performance.now() * 0.005) * 4;
+  for (const p of m.portals) {
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.fillStyle = 'rgba(56, 182, 255, 0.35)';
+    ctx.beginPath(); ctx.ellipse(0, 0, 38 + pulse, 20 + pulse * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.ellipse(0, 0, 30, 15, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+    ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+    ctx.fillText('🌀 ' + p.label, 0, -24);
+    ctx.restore();
+  }
+
+  // 3. 繪製點擊地面移動的青色波紋光圈 (1:1 還原影片地面點擊圈)
+  for (let i = STATE.clickRipples.length - 1; i >= 0; i--) {
+    const rp = STATE.clickRipples[i];
+    rp.r += dt * 45;
+    rp.alpha -= dt * 1.4;
+    if (rp.alpha <= 0) { STATE.clickRipples.splice(i, 1); continue; }
+    ctx.strokeStyle = `rgba(120, 255, 240, ${rp.alpha})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(rp.x, rp.y, rp.r, rp.r * 0.5, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // 4. 繪製場景樹木與建築
+  for (const item of mapScenery) {
+    drawSceneryItem(ctx, item, item.x, item.y);
+  }
+
+  // 5. 更新並繪製野怪 (點擊或碰撞即進入經典回合制戰鬥)
+  for (const mob of STATE.fieldEntities) {
+    mob.timer += dt;
+    mob.x += mob.vx;
+    mob.y += mob.vy;
+    if (mob.x < 120 || mob.x > m.width - 160) mob.vx *= -1;
+    if (mob.y < 120 || mob.y > m.height - 160) mob.vy *= -1;
+
+    ctx.save();
+    ctx.translate(mob.x, mob.y);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(0, 8, 16, 7, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.font = '28px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(mob.tpl.icon, 0, 4 + Math.sin(mob.timer * 4) * 3);
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillStyle = mob.isBaby ? '#72f29a' : '#ffffff';
+    ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+    ctx.fillText(mob.name, 0, -24);
+    ctx.restore();
+
+    // 若主角走近野怪則觸發戰鬥
+    if (dist > 4 && Math.hypot(h.x - mob.x, h.y - mob.y) < 34) {
+      startBattle(mob.tpl, mob.isBaby);
+      ctx.restore();
+      return;
+    }
+  }
+
+  // 6. 繪製 NPC 與 封神星宿 (1:1 還原影片白色圓角對話氣泡「吾乃封神星宿，歡迎挑戰！」)
+  for (const npc of m.npcs) {
+    ctx.save();
+    ctx.translate(npc.x, npc.y);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(0, 10, 18, 8, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.font = '32px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(npc.icon, 0, 4);
+
+    // 頭頂名稱
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillStyle = npc.isStarBoss ? '#ff922b' : '#ffe066';
+    ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+    ctx.fillText(npc.name, 0, 24);
+
+    // 經典白底藍框頭頂氣泡 (還原影片 00:50 地魁星/天猛星對話框)
+    if (npc.bubble) {
+      const bw = 165, bh = 38;
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(245, 250, 255, 0.92)';
+      ctx.strokeStyle = '#4a7ab0';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(-bw / 2, -68, bw, bh, 5);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#1b3a5c';
+      ctx.font = '11px sans-serif';
+      ctx.fillText(npc.name, 0, -53);
+      ctx.fillStyle = '#c92a2a';
+      ctx.fillText(npc.bubble.slice(0, 14), 0, -37);
+    }
+    ctx.restore();
+  }
+
+  // 7. 繪製跟隨戰寵与主角 (含火眼金睛獸座騎與紅色雙翼法寶配件 - 1:1 還原影片 KLYLYANy3mU 主角外觀)
+  const pet = getActivePet();
+  const px = h.x - h.dir * 38;
+  const py = h.y + 12;
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(0, 8, 14, 6, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.font = '24px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(pet.icon, 0, 2 + Math.sin(h.walkFrame) * 2);
+  ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#ffd43b';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+  ctx.fillText(pet.name, 0, -20);
+  ctx.restore();
+
+  // 主角與座騎
+  ctx.save();
+  ctx.translate(h.x, h.y);
+  const bob = Math.sin(h.walkFrame) * 3;
+  // 腳下陰影與光環
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.beginPath(); ctx.ellipse(0, 12, 26, 11, 0, 0, Math.PI * 2); ctx.fill();
+
+  if (h.mount.active) {
+    // 經典座騎兩側神獸飛翼配件 (還原影片中角色身旁兩側紅白機械飛翼)
+    ctx.fillStyle = '#c9182b';
+    ctx.strokeStyle = '#ffccd5';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(-42, -8 + bob); ctx.lineTo(-18, -22 + bob); ctx.lineTo(-18, 4 + bob); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(42, -8 + bob); ctx.lineTo(18, -22 + bob); ctx.lineTo(18, 4 + bob); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.font = '32px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(h.mount.icon, 0, 10 + bob);
+  }
+
+  ctx.font = '30px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(CLASSES[h.job].icon, 0, (h.mount.active ? -10 : 4) + bob);
+
+  // 頭頂角色名 (1:1 還原影片綠底白字「氣似雲來」)
+  ctx.font = 'bold 12px sans-serif';
+  ctx.fillStyle = '#99e9f2';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+  ctx.fillText(`<${CLASSES[h.job].name}> ${h.title}`, 0, -46);
+  ctx.fillStyle = '#72f29a';
+  ctx.font = 'bold 13px sans-serif';
+  ctx.fillText(h.name, 0, -31);
+  ctx.restore();
+
+  ctx.restore();
+
+  // 8. 更新右上角小地圖與座標時間
+  drawMinimap(m);
+}
+
+function drawMinimap(m) {
+  mmCtx.fillStyle = '#10374a';
+  mmCtx.fillRect(0, 0, mmCanvas.width, mmCanvas.height);
+
+  const sx = mmCanvas.width / m.width;
+  const sy = mmCanvas.height / m.height;
+
+  // 陸地輪廓
+  mmCtx.fillStyle = m.bgBase;
+  mmCtx.fillRect(8, 6, mmCanvas.width - 18, mmCanvas.height - 12);
+
+  // 道路
+  mmCtx.strokeStyle = m.roadColor;
+  mmCtx.lineWidth = 4;
+  mmCtx.beginPath();
+  mmCtx.moveTo(160 * sx, 180 * sy);
+  mmCtx.lineTo(750 * sx, 520 * sy);
+  mmCtx.lineTo(1250 * sx, 680 * sy);
+  mmCtx.lineTo((m.width - 200) * sx, (m.height - 200) * sy);
+  mmCtx.stroke();
+
+  // 傳送點 (藍圈)
+  for (const p of m.portals) {
+    mmCtx.fillStyle = '#3bc9db';
+    mmCtx.beginPath(); mmCtx.arc(p.x * sx, p.y * sy, 3.5, 0, Math.PI * 2); mmCtx.fill();
+  }
+  // NPC (黃點)
+  for (const npc of m.npcs) {
+    mmCtx.fillStyle = npc.isStarBoss ? '#ff6b6b' : '#ffe066';
+    mmCtx.fillRect(npc.x * sx - 2, npc.y * sy - 2, 4, 4);
+  }
+  // 玩家位置 (閃爍紅白點)
+  mmCtx.fillStyle = '#ff2a2a';
+  mmCtx.beginPath(); mmCtx.arc(STATE.hero.x * sx, STATE.hero.y * sy, 4, 0, Math.PI * 2); mmCtx.fill();
+  mmCtx.strokeStyle = '#fff'; mmCtx.lineWidth = 1; mmCtx.stroke();
+
+  const gx = Math.round(STATE.hero.x / 3);
+  const gy = Math.round(STATE.hero.y / 3);
+  const now = new Date();
+  const tStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+  document.getElementById('mm-coords-text').textContent = `${gx}/${gy} ${tStr}`;
+}
+</script>
+
+<script>
+// ============================================================================
+// 經典 45度斜視角回合制戰鬥引擎 (1:1 還原影片 bA8qY6fsEcA 與 KLYLYANy3mU)
+// ============================================================================
+const BATTLE = {
+  active: false,
+  round: 1,
+  timer: 20,
+  timerAcc: 0,
+  phase: 'player_cmd', // 'player_cmd', 'player_target', 'pet_cmd', 'pet_target', 'animating'
+  playerActionsRequired: 1,
+  playerActionsQueue: [],
+  pendingSkill: null,
+  selectedTargets: [],
+  petAction: null,
+  enemies: [],
+  fxList: [],
+  dmgPopups: [],
+  autoBattle: false
+};
+
+// 左上敵方陣列座標 (2排 x 5列 斜向45度排列，1:1 還原石怪大軍站位)
+const ENEMY_SLOTS = [
+  // 後排 (左上)
+  { x: 145, y: 270 }, { x: 205, y: 230 }, { x: 265, y: 190 }, { x: 325, y: 150 }, { x: 385, y: 110 },
+  // 前排 (中左)
+  { x: 225, y: 335 }, { x: 285, y: 295 }, { x: 345, y: 255 }, { x: 405, y: 215 }, { x: 465, y: 175 }
+];
+
+// 右下我方站位 (前排戰寵 + 後排主角 + 右後守護神仙)
+const ALLY_POS = {
+  pet:  { x: 495, y: 495 },
+  hero: { x: 705, y: 385 },
+  god:  { x: 770, y: 315 }
+};
+
+function startBattle(monsterTpl, forceBaby = false) {
+  SFX.play('click');
+  STATE.mode = 'battle';
+  BATTLE.active = true;
+  BATTLE.round = 1;
+  BATTLE.timer = 20;
+  BATTLE.fxList = [];
+  BATTLE.dmgPopups = [];
+  BATTLE.enemies = [];
+
+  // 石怪或大軍模式直接出 10 隻 (還原影片 bA8qY6fsEcA 滿場石怪)，一般怪出 3~6 隻
+  const count = monsterTpl.swarm ? 10 : (monsterTpl.key.startsWith('star_') ? 5 : (3 + Math.floor(Math.random() * 4)));
+  for (let i = 0; i < count; i++) {
+    const slot = ENEMY_SLOTS[i % ENEMY_SLOTS.length];
+    const isBaby = (i === 0 && forceBaby) || (monsterTpl.capturable && !monsterTpl.key.startsWith('star_') && Math.random() < 0.22);
+    const maxHp = isBaby ? Math.max(40, Math.round(monsterTpl.hp * 0.5)) : monsterTpl.hp;
+    BATTLE.enemies.push({
+      idx: i,
+      tpl: monsterTpl,
+      name: isBaby ? `${monsterTpl.name}(Lv.1寶寶)` : monsterTpl.name,
+      lv: isBaby ? 1 : monsterTpl.lv,
+      isBaby: isBaby,
+      capturable: monsterTpl.capturable,
+      hp: maxHp, maxHp: maxHp,
+      atk: monsterTpl.atk, def: monsterTpl.def, agi: monsterTpl.agi,
+      elem: monsterTpl.elem, icon: monsterTpl.icon,
+      x: slot.x, y: slot.y,
+      status: null
+    });
+  }
+
+  document.getElementById('battle-ui-layer').style.display = 'block';
+  document.getElementById('battle-victory-modal').style.display = 'none';
+  setupBattleRound();
+}
+
+function setupBattleRound() {
+  BATTLE.timer = 20;
+  BATTLE.timerAcc = 0;
+  BATTLE.playerActionsQueue = [];
+  BATTLE.selectedTargets = [];
+  BATTLE.pendingSkill = null;
+  // 若有開啟陣法 (如鶴翼陣、鋒矢陣、諸神黃昏)，陣眼主角每回合可行動 2 次！
+  BATTLE.playerActionsRequired = STATE.hero.formation ? 2 : 1;
+  BATTLE.phase = 'player_cmd';
+  document.getElementById('b-round-text').textContent = String(BATTLE.round).padStart(3, '0') + '回';
+  document.getElementById('b-timer-text').textContent = '20';
+  closeBattleSubmenu();
+
+  if (BATTLE.autoBattle) {
+    triggerAutoTurn();
+  } else {
+    renderBattleCommandStaircase('player');
+  }
+}
+
+// 繪製斜向45度雙色膠囊指令選單 (1:1 還原影片 00:16 橘藍主角選單 & 00:20 橘綠戰寵選單)
+function renderBattleCommandStaircase(who) {
+  const container = document.getElementById('battle-cmd-staircase');
+  container.innerHTML = '';
+  container.className = (who === 'pet') ? 'pet-mode' : '';
+
+  if (who === 'player') {
+    const actNumStr = BATTLE.playerActionsRequired > 1
+      ? `<div style="position:absolute;top:-24px;left:140px;background:rgba(0,0,0,0.75);border:1px solid #ffe066;padding:1px 8px;border-radius:10px;font-size:11px;color:#ffe066;">☯️ ${STATE.hero.formation}・陣眼二動 (${BATTLE.playerActionsQueue.length + 1}/${BATTLE.playerActionsRequired})</div>`
+      : '';
+    container.insertAdjacentHTML('beforeend', actNumStr);
+
+    const rows = [
+      { top: 0,   left: 195, btns: [{ label:'攻擊', act:'atk' }, { label:'防禦', act:'def' }] },
+      { top: 32,  left: 155, btns: [{ label:'技能', act:'skill' }, { label:'道具', act:'item' }] },
+      { top: 64,  left: 115, btns: [{ label:'戰寵', act:'pet_switch' }] },
+      { top: 96,  left: 75,  btns: [{ label:'神仙', act:'god' }, { label:'自動', act:'auto' }] },
+      { top: 128, left: 35,  btns: [{ label:'換位', act:'row' }, { label:'逃跑', act:'flee' }] }
+    ];
+    rows.forEach(r => {
+      const rowDiv = document.createElement('div');
+      rowDiv.className = 'cmd-row';
+      rowDiv.style.top = r.top + 'px';
+      rowDiv.style.left = r.left + 'px';
+      r.btns.forEach(b => {
+        const pill = document.createElement('div');
+        pill.className = 'cmd-pill';
+        pill.innerHTML = `<div class="cap"></div><div class="label">${b.label}</div>`;
+        pill.onclick = () => onPlayerCmdClick(b.act);
+        rowDiv.appendChild(pill);
+      });
+      container.appendChild(rowDiv);
+    });
+  } else {
+    // 戰寵指令階段 (綠色膠囊，1:1 還原影片 00:20)
+    const rows = [
+      { top: 24, left: 165, btns: [{ label:'攻擊', act:'pet_atk' }, { label:'防禦', act:'pet_def' }] },
+      { top: 56, left: 125, btns: [{ label:'技能', act:'pet_skill' }] },
+      { top: 88, left: 85,  btns: [{ label:'換位', act:'pet_row' }, { label:'撤退', act:'pet_retreat' }] }
+    ];
+    rows.forEach(r => {
+      const rowDiv = document.createElement('div');
+      rowDiv.className = 'cmd-row';
+      rowDiv.style.top = r.top + 'px';
+      rowDiv.style.left = r.left + 'px';
+      r.btns.forEach(b => {
+        const pill = document.createElement('div');
+        pill.className = 'cmd-pill';
+        pill.innerHTML = `<div class="cap"></div><div class="label">${b.label}</div>`;
+        pill.onclick = () => onPetCmdClick(b.act);
+        rowDiv.appendChild(pill);
+      });
+      container.appendChild(rowDiv);
+    });
+  }
+}
+
+function onPlayerCmdClick(act) {
+  SFX.play('click');
+  closeBattleSubmenu();
+  const aliveEnemies = BATTLE.enemies.filter(e => e.hp > 0);
+  if (aliveEnemies.length === 0) return;
+
+  if (act === 'atk') {
+    BATTLE.pendingSkill = { id:'basic_atk', name:'普通攻擊', mp:0, target:'single', hits:1, mult:1.0, icon:'⚔️' };
+    BATTLE.phase = 'player_target';
+    addLog('[戰鬥] 請點擊左上角欲攻擊的敵方目標！', 'log-sys');
+  } else if (act === 'def') {
+    queuePlayerAction({ type:'def', name:'防禦姿態' });
+  } else if (act === 'skill' || act === 'god') {
+    openBattleSkillMenu(act);
+  } else if (act === 'item') {
+    openBattleItemMenu();
+  } else if (act === 'auto') {
+    BATTLE.autoBattle = !BATTLE.autoBattle;
+    triggerAutoTurn();
+  } else if (act === 'row') {
+    STATE.hero.row = STATE.hero.row === 'back' ? 'front' : 'back';
+    addLog(`[戰鬥] 主角與戰寵交換前後排站位！`, 'log-sys');
+  } else if (act === 'pet_switch') {
+    const idx = STATE.pets.findIndex(p => p.active);
+    STATE.pets.forEach(p => p.active = false);
+    STATE.pets[(idx + 1) % STATE.pets.length].active = true;
+    updateTopLeftPortraits();
+    addLog(`[戰鬥] 召喚戰寵【${getActivePet().name}】登場助戰！`, 'log-sys');
+  } else if (act === 'flee') {
+    addLog('[系統] 成功施展土遁脫離戰鬥！', 'log-sys');
+    endBattle(false);
+  }
+}
+
+function openBattleSkillMenu(mode) {
+  const popup = document.getElementById('battle-skill-popup');
+  const grid = document.getElementById('bsp-grid');
+  document.getElementById('bsp-title').textContent = mode === 'god' ? `神仙技能 (${getActiveGod().name})` : '武技・仙術・氣功・陣法';
+  grid.innerHTML = '';
+
+  const list = SKILLS;
+  list.slice(0, 15).forEach(sk => {
+    const slot = document.createElement('div');
+    slot.className = 'bsp-slot';
+    slot.innerHTML = `<div class="s-ico">${sk.icon}</div><div class="s-short">${sk.short}</div>`;
+    slot.onmouseenter = (ev) => showTooltip(ev, sk.name, `消耗MP: ${sk.mp} | 範圍: ${sk.target}`, sk.desc);
+    slot.onmouseleave = hideTooltip;
+    slot.onclick = () => {
+      hideTooltip();
+      popup.style.display = 'none';
+      if (sk.target.startsWith('ally')) {
+        queuePlayerAction({ type:'skill', skill: sk, targets: [] });
+      } else {
+        BATTLE.pendingSkill = sk;
+        BATTLE.selectedTargets = [];
+        BATTLE.phase = 'player_target';
+        addLog(`[技能] 已準備【${sk.name}】，請點擊敵方目標施放！`, 'log-sys');
+      }
+    };
+    grid.appendChild(slot);
+  });
+  popup.style.display = 'block';
+}
+
+function openBattleItemMenu() {
+  const popup = document.getElementById('battle-skill-popup');
+  const grid = document.getElementById('bsp-grid');
+  document.getElementById('bsp-title').textContent = '戰鬥道具與封印卡';
+  grid.innerHTML = '';
+  STATE.bag.forEach(it => {
+    const slot = document.createElement('div');
+    slot.className = 'bsp-slot';
+    slot.innerHTML = `<div class="s-ico">${it.icon}</div><div class="s-short">${it.name.slice(0,4)}x${it.qty}</div>`;
+    slot.onmouseenter = (ev) => showTooltip(ev, `${it.name} x${it.qty}`, it.type, it.desc);
+    slot.onmouseleave = hideTooltip;
+    slot.onclick = () => {
+      hideTooltip();
+      popup.style.display = 'none';
+      if (it.id === 'seal_card') {
+        BATTLE.pendingSkill = { id:'capture', name:'封印卡捕捉', item: it, target:'single' };
+        BATTLE.phase = 'player_target';
+        addLog('[捕抓] 請點擊欲捕捉的敵方怪物（受傷越重或Lv.1寶寶成功率越高）！', 'log-loot');
+      } else {
+        useBagItem(it);
+        queuePlayerAction({ type:'item', name: it.name });
+      }
+    };
+    grid.appendChild(slot);
+  });
+  popup.style.display = 'block';
+}
+
+function closeBattleSubmenu() {
+  document.getElementById('battle-skill-popup').style.display = 'none';
+}
+
+function queuePlayerAction(actObj) {
+  BATTLE.playerActionsQueue.push(actObj);
+  if (BATTLE.playerActionsQueue.length < BATTLE.playerActionsRequired) {
+    BATTLE.phase = 'player_cmd';
+    renderBattleCommandStaircase('player');
+  } else {
+    // 進入戰寵指令階段 (綠色膠囊)
+    BATTLE.phase = 'pet_cmd';
+    renderBattleCommandStaircase('pet');
+  }
+}
+
+function onPetCmdClick(act) {
+  SFX.play('click');
+  const alive = BATTLE.enemies.filter(e => e.hp > 0);
+  const firstTarget = alive[0];
+  if (act === 'pet_atk') {
+    BATTLE.petAction = { type:'atk', target: firstTarget };
+  } else if (act === 'pet_skill') {
+    BATTLE.petAction = { type:'skill', target: firstTarget };
+  } else {
+    BATTLE.petAction = { type:'def' };
+  }
+  executeBattleTurnResolution();
+}
+
+function triggerAutoTurn() {
+  const alive = BATTLE.enemies.filter(e => e.hp > 0);
+  if (alive.length === 0) return;
+  const favSkill = SKILLS.find(s => s.id === 'k_qixing') || SKILLS[0];
+  BATTLE.playerActionsQueue = [];
+  for (let i = 0; i < BATTLE.playerActionsRequired; i++) {
+    BATTLE.playerActionsQueue.push({
+      type: 'skill',
+      skill: favSkill,
+      targets: alive.slice(0, 7)
+    });
+  }
+  BATTLE.petAction = { type: 'skill', target: alive[0] };
+  executeBattleTurnResolution();
+}
+</script>
+
+<script>
+// ============================================================================
+// 戰鬥回合動畫演出、七星雷亟箭/五行特效、漫畫爆擊數字與勝利結算視窗
+// ============================================================================
+function getTargetsByScope(clickedEnemy, scope) {
+  const alive = BATTLE.enemies.filter(e => e.hp > 0);
+  if (scope === 'single') return [clickedEnemy];
+  if (scope === 'row') {
+    const isFront = clickedEnemy.idx >= 5;
+    return alive.filter(e => (e.idx >= 5) === isFront);
+  }
+  if (scope === 'triangle') {
+    return alive.slice(0, 3);
+  }
+  if (scope === 'circle' || scope === 'multi7') {
+    return alive.slice(0, 7);
+  }
+  return [clickedEnemy];
+}
+
+function spawnBattleEffect(type, x, y, color = '#c77dff') {
+  BATTLE.fxList.push({ type, x, y, color, t: 0, maxT: 0.55 });
+}
+
+function spawnDamagePopup(x, y, text, isCrit = false) {
+  BATTLE.dmgPopups.push({ x, y: y - 15, text: String(text), isCrit, t: 0 });
+}
+
+function executeBattleTurnResolution() {
+  BATTLE.phase = 'animating';
+  document.getElementById('battle-cmd-staircase').innerHTML = '';
+  closeBattleSubmenu();
+
+  let delay = 100;
+  const h = STATE.hero;
+  const pet = getActivePet();
+  const god = getActiveGod();
+
+  // 1. 執行主角行動佇列 (支援謀士陣眼二動！)
+  BATTLE.playerActionsQueue.forEach((act, actionIndex) => {
+    setTimeout(() => {
+      if (!BATTLE.active) return;
+      if (act.type === 'def') {
+        addLog(`[主角] ${h.name} 採取防禦姿態，受到傷害減半！`, 'log-sys');
+      } else if (act.type === 'capture') {
+        const target = act.target;
+        if (!target || target.hp <= 0) return;
+        spawnBattleEffect('seal', target.x, target.y, '#ffe066');
+        SFX.play('heal');
+        const hpRatio = target.hp / target.maxHp;
+        const chance = target.isBaby ? 0.92 : (target.capturable ? Math.min(0.88, 1.05 - hpRatio * 0.5) : 0.25);
+        if (Math.random() <= chance) {
+          target.hp = 0;
+          STATE.pets.push({
+            id: Date.now(),
+            name: target.name,
+            icon: target.icon,
+            lv: target.lv,
+            hp: target.maxHp, maxHp: target.maxHp,
+            mp: 120, maxMp: 120,
+            atk: target.atk + 15, def: target.def + 10, agi: target.agi + 10,
+            elem: target.elem, loyalty: 85,
+            skill: target.tpl.skill || '劍一 蒼穹訣',
+            active: false
+          });
+          addLog(`🎉 [捕抓成功] 成功用封印卡收服了【${target.name}】！已加入戰寵欄！`, 'log-loot');
+          advanceQuest('q2', 1);
+        } else {
+          spawnDamagePopup(target.x, target.y, '捕捉失敗', false);
+          addLog(`[捕抓] 哎呀！【${target.name}】掙脫了封印卡！`, 'log-dmg');
+        }
+      } else if (act.type === 'skill') {
+        const sk = act.skill;
+        h.mp = Math.max(0, h.mp - (sk.mp || 0));
+        updateTopLeftPortraits();
+
+        if (sk.formation) {
+          h.formation = sk.formation;
+          SFX.play('heal');
+          spawnBattleEffect('aura', ALLY_POS.hero.x, ALLY_POS.hero.y, '#3bc9db');
+          addLog(`☯️ [陣法] ${h.name} 偕同 ${god.name} 展開【${sk.name}】！陣眼可兩次行動！`, 'log-sys');
+        } else if (sk.heal) {
+          SFX.play('heal');
+          h.hp = Math.min(h.maxHp, h.hp + sk.heal);
+          pet.hp = Math.min(pet.maxHp, pet.hp + sk.heal);
+          spawnBattleEffect('heal', ALLY_POS.hero.x, ALLY_POS.hero.y, '#51cf66');
+          spawnBattleEffect('heal', ALLY_POS.pet.x, ALLY_POS.pet.y, '#51cf66');
+          spawnDamagePopup(ALLY_POS.hero.x, ALLY_POS.hero.y, '+' + sk.heal, false);
+          spawnDamagePopup(ALLY_POS.pet.x, ALLY_POS.pet.y, '+' + sk.heal, false);
+          updateTopLeftPortraits();
+          addLog(`💚 [醫療] 施展【${sk.name}】恢復全隊 ${sk.heal} 點生命！`, 'log-npc');
+        } else if (sk.buff) {
+          SFX.play('heal');
+          spawnBattleEffect('aura', ALLY_POS.hero.x, ALLY_POS.hero.y, '#ffd43b');
+          addLog(`✨ [強化] 施展【${sk.name}】附加狀態：${sk.buff}！`, 'log-npc');
+        } else {
+          // 攻擊型武技或仙術 (支援七星雷亟箭多段紫雷打擊！)
+          const targets = (act.targets && act.targets.length > 0)
+            ? act.targets.filter(t => t.hp > 0)
+            : BATTLE.enemies.filter(t => t.hp > 0).slice(0, 3);
+          if (targets.length === 0) return;
+
+          SFX.play(sk.id === 'k_qixing' || sk.elem === '金' ? 'thunder' : 'hit');
+          addLog(`⚡ [第${actionIndex + 1}動] ${h.name} 呼喚神仙【${god.name}】施展「${sk.name}」！`, 'log-sys');
+
+          const totalHits = sk.hits || 1;
+          targets.forEach((t, tidx) => {
+            for (let hit = 0; hit < (sk.target === 'single' ? totalHits : 1); hit++) {
+              setTimeout(() => {
+                if (t.hp <= 0) return;
+                const baseAtk = h.str * 3.2 + h.int * 2.5 + h.lv * 8;
+                const rawDmg = Math.max(25, Math.round((baseAtk * (sk.mult || 1.2) - t.def * 0.6) * (0.9 + Math.random() * 0.25)));
+                const isCrit = Math.random() < 0.35;
+                const finalDmg = isCrit ? Math.round(rawDmg * 1.65) : rawDmg;
+                t.hp = Math.max(0, t.hp - finalDmg);
+                if (sk.status && Math.random() < 0.65) t.status = sk.status;
+
+                const fxColor = sk.elem === '火' ? '#ff6b6b' : (sk.elem === '木' ? '#51cf66' : (sk.elem === '水' ? '#339af0' : '#cc5de8'));
+                spawnBattleEffect('lightning', t.x, t.y, fxColor);
+                spawnDamagePopup(t.x + (Math.random() * 24 - 12), t.y - hit * 14, finalDmg, isCrit);
+
+                if (t.hp === 0 && t.tpl.key === 'shiguai') {
+                  advanceQuest('q3', 1);
+                }
+              }, hit * 130 + tidx * 75);
+            }
+          });
+        }
+      }
+    }, delay);
+    delay += 780;
+  });
+
+  // 2. 執行戰寵行動
+  setTimeout(() => {
+    if (!BATTLE.active) return;
+    const alive = BATTLE.enemies.filter(e => e.hp > 0);
+    if (alive.length === 0) { checkBattleEnd(); return; }
+    const target = (BATTLE.petAction && BATTLE.petAction.target && BATTLE.petAction.target.hp > 0)
+      ? BATTLE.petAction.target
+      : alive[0];
+    if (pet.hp > 0 && target) {
+      SFX.play('hit');
+      const pDmg = Math.max(18, Math.round((pet.atk * 2.8 - target.def * 0.5) * (0.9 + Math.random() * 0.2)));
+      target.hp = Math.max(0, target.hp - pDmg);
+      spawnBattleEffect('slash', target.x, target.y, '#fcc419');
+      spawnDamagePopup(target.x, target.y, pDmg, true);
+      addLog(`🐾 [戰寵] ${pet.name} 施展【${pet.skill}】對 ${target.name} 造成 ${pDmg} 點傷害！`, 'log-npc');
+      if (target.hp === 0 && target.tpl.key === 'shiguai') advanceQuest('q3', 1);
+    }
+  }, delay);
+  delay += 650;
+
+  // 3. 敵方回合行動與狀態結算
+  setTimeout(() => {
+    if (!BATTLE.active) return;
+    const alive = BATTLE.enemies.filter(e => e.hp > 0);
+    if (alive.length === 0) { checkBattleEnd(); return; }
+
+    alive.slice(0, 4).forEach((e, idx) => {
+      setTimeout(() => {
+        if (!BATTLE.active || e.hp <= 0) return;
+        if (e.status === '麻痺' || e.status === '睡眠' || e.status === '石化') {
+          spawnDamagePopup(e.x, e.y, e.status + '中', false);
+          e.status = null;
+          return;
+        }
+        SFX.play('hit');
+        // 敵人攻擊前排戰寵或主角 (還原影片石怪衝上前槌擊出 1 或 miss)
+        const hitPet = Math.random() < 0.65 && pet.hp > 0;
+        const tgtPos = hitPet ? ALLY_POS.pet : ALLY_POS.hero;
+        const isMiss = Math.random() < 0.35;
+        if (isMiss) {
+          spawnDamagePopup(tgtPos.x, tgtPos.y, 'miss', false);
+        } else {
+          const eDmg = Math.max(1, Math.round(e.atk * 0.8 - (hitPet ? pet.def : STATE.hero.vit * 2)));
+          if (hitPet) pet.hp = Math.max(1, pet.hp - eDmg);
+          else STATE.hero.hp = Math.max(1, STATE.hero.hp - eDmg);
+          spawnBattleEffect('slash', tgtPos.x, tgtPos.y, '#ff8787');
+          spawnDamagePopup(tgtPos.x, tgtPos.y, eDmg, false);
+          updateTopLeftPortraits();
+        }
+      }, idx * 180);
+    });
+
+    setTimeout(() => {
+      if (!BATTLE.active) return;
+      if (!checkBattleEnd()) {
+        // 衡軛陣每回合自動回血
+        if (STATE.hero.formation === '衡軛陣' || STATE.hero.formation === '諸神黃昏') {
+          STATE.hero.hp = Math.min(STATE.hero.maxHp, STATE.hero.hp + 120);
+          pet.hp = Math.min(pet.maxHp, pet.hp + 120);
+          updateTopLeftPortraits();
+        }
+        BATTLE.round++;
+        setupBattleRound();
+      }
+    }, alive.slice(0, 4).length * 180 + 350);
+  }, delay);
+}
+
+function checkBattleEnd() {
+  const alive = BATTLE.enemies.filter(e => e.hp > 0);
+  if (alive.length > 0) return false;
+
+  // 全部敵人擊倒 -> 彈出經典橘金邊框戰鬥勝利結算視窗 (1:1 還原影片 00:37 & 02:35)
+  SFX.play('win');
+  const firstTpl = BATTLE.enemies[0].tpl;
+  const count = BATTLE.enemies.length;
+  const heroExp = firstTpl.exp * count;
+  const godExp = Math.round(heroExp * 1.35);
+  const petExp = heroExp;
+  const goldGain = count * firstTpl.lv * 180;
+
+  STATE.hero.exp += heroExp;
+  STATE.hero.gold += goldGain;
+  if (STATE.hero.exp >= STATE.hero.maxExp) {
+    STATE.hero.lv++;
+    STATE.hero.exp = 0;
+    STATE.hero.maxExp = Math.round(STATE.hero.maxExp * 1.25);
+    STATE.hero.maxHp += 65; STATE.hero.hp = STATE.hero.maxHp;
+    STATE.hero.maxMp += 35; STATE.hero.mp = STATE.hero.maxMp;
+    STATE.hero.freePts += 4;
+    addLog(`🎊 [升級] 恭喜主角升至 Lv.${STATE.hero.lv}！獲得 4 點自由屬性點！`, 'log-sys');
+  }
+  const pet = getActivePet();
+  pet.lv += (Math.random() < 0.45 ? 1 : 0);
+  getActiveGod().lv += (Math.random() < 0.45 ? 1 : 0);
+  updateTopLeftPortraits();
+
+  if (firstTpl.key && firstTpl.key.startsWith('star_')) {
+    advanceQuest('q4', 1);
+  }
+
+  // 掉落 3 格戰利品並顯示粉紫色 [你] 獲得 XXX 訊息 (1:1 還原影片 KLYLYANy3mU 00:37)
+  const drops = firstTpl.drops || ['鬼草', '仿製藍寶石', '金創藥'];
+  const lootRow = document.getElementById('vic-loot-row');
+  lootRow.innerHTML = '';
+  const lootIcons = ['🌿', '💎', '🎴'];
+  for (let i = 0; i < 3; i++) {
+    const dName = drops[i % drops.length];
+    const slot = document.createElement('div');
+    slot.className = 'vic-loot-slot';
+    slot.innerHTML = `${lootIcons[i]}<span>${dName}</span>`;
+    lootRow.appendChild(slot);
+    addLog(`[你] 獲得 ${dName} .`, 'log-loot');
+    // 放入背包
+    const existing = STATE.bag.find(b => b.name.includes(dName.slice(0,2)));
+    if (existing) existing.qty++;
+  }
+
+  document.getElementById('vic-hero-exp').textContent = heroExp;
+  document.getElementById('vic-god-exp').textContent = godExp;
+  document.getElementById('vic-pet-exp').textContent = `${petExp}/1`;
+  document.getElementById('battle-victory-modal').style.display = 'block';
+  BATTLE.phase = 'victory';
+  return true;
+}
+
+function closeVictoryModal() {
+  document.getElementById('battle-victory-modal').style.display = 'none';
+  endBattle(true);
+}
+
+function endBattle(won) {
+  BATTLE.active = false;
+  BATTLE.autoBattle = false;
+  STATE.mode = 'field';
+  document.getElementById('battle-ui-layer').style.display = 'none';
+  document.getElementById('battle-victory-modal').style.display = 'none';
+}
+
+function updateAndDrawBattle(dt) {
+  // 倒數計時器
+  if (BATTLE.phase === 'player_cmd' || BATTLE.phase === 'player_target' || BATTLE.phase === 'pet_cmd') {
+    BATTLE.timerAcc += dt;
+    if (BATTLE.timerAcc >= 1) {
+      BATTLE.timerAcc = 0;
+      BATTLE.timer = Math.max(0, BATTLE.timer - 1);
+      document.getElementById('b-timer-text').textContent = String(BATTLE.timer);
+      if (BATTLE.timer === 0) triggerAutoTurn();
+    }
+  }
+
+  // 1. 繪製 45 度斜視角岩石戰場背景 (1:1 還原影片 KLYLYANy3mU 00:34 & bA8qY6fsEcA 戰場地板)
+  const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  grad.addColorStop(0, '#7c7865');
+  grad.addColorStop(0.5, '#968f7b');
+  grad.addColorStop(1, '#6e6855');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 斜向45度岩層裂紋與右上角綠地邊界 (1:1 還原影片右上角露出草地邊角)
+  ctx.strokeStyle = 'rgba(70, 62, 48, 0.45)';
+  ctx.lineWidth = 3;
+  for (let i = -300; i < 1200; i += 85) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i + 520, canvas.height);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#4f9c36';
+  ctx.beginPath();
+  ctx.moveTo(640, 0); ctx.lineTo(1024, 0); ctx.lineTo(1024, 290);
+  ctx.closePath(); ctx.fill();
+
+  const now = performance.now() * 0.004;
+
+  // 2. 繪製左上角敵方陣列 (含腳下橘綠血條與粉紅目標鎖定光圈)
+  BATTLE.enemies.forEach((e, idx) => {
+    if (e.hp <= 0) return;
+    ctx.save();
+    ctx.translate(e.x, e.y);
+
+    // 若處於目標選擇或已被選取，腳下顯示粉紫色光圈與編號 (1:1 還原影片 bA8qY6fsEcA 00:19)
+    if (BATTLE.phase === 'player_target') {
+      ctx.strokeStyle = '#ff66cc';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.ellipse(0, 12, 26, 13, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = '#ff66cc';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText(idx + 1, -28, 18);
+    }
+
+    // 陰影
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(0, 12, 22, 9, 0, 0, Math.PI * 2); ctx.fill();
+
+    // 怪物圖示
+    ctx.font = '38px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(e.icon, 0, 4 + Math.sin(now + idx) * 2.5);
+
+    // 頭頂名稱與等級
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillStyle = e.isBaby ? '#72f29a' : '#ffe066';
+    ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+    ctx.fillText(`Lv.${e.lv} ${e.name}`, 0, -32);
+    if (e.status) {
+      ctx.fillStyle = '#ff6b6b';
+      ctx.fillText(`[${e.status}]`, 0, -45);
+    }
+
+    // 腳下經典橘底綠血條 + 藍魔力條 (1:1 還原影片石怪腳下血條)
+    ctx.shadowBlur = 0;
+    const bw = 42, bh = 5;
+    ctx.fillStyle = '#2b1d0e';
+    ctx.fillRect(-bw / 2 - 1, 16, bw + 2, bh + 4);
+    ctx.fillStyle = '#d9480f';
+    ctx.fillRect(-bw / 2, 17, bw, bh);
+    ctx.fillStyle = '#8ce99a';
+    ctx.fillRect(-bw / 2, 17, bw * (e.hp / e.maxHp), bh);
+    ctx.fillStyle = '#339af0';
+    ctx.fillRect(-bw / 2, 17 + bh, bw, 2);
+
+    ctx.restore();
+  });
+
+  // 3. 繪製右下角我方陣型：前排戰寵 (紅橙光環) + 後排主角 (青藍八卦陣光環) + 右上背後守護神仙
+  const pet = getActivePet();
+  const god = getActiveGod();
+  const h = STATE.hero;
+
+  // (a) 前排戰寵
+  ctx.save();
+  ctx.translate(ALLY_POS.pet.x, ALLY_POS.pet.y);
+  ctx.strokeStyle = '#ff6b35'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.ellipse(0, 14, 32 + Math.sin(now * 2) * 3, 15, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.font = '36px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(pet.icon, 0, 4 + Math.sin(now * 1.5) * 2);
+  ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#ffe066';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+  ctx.fillText(pet.name, 0, -28);
+  // 戰寵腳下血魔條
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#222'; ctx.fillRect(-22, 19, 44, 7);
+  ctx.fillStyle = '#ff6b6b'; ctx.fillRect(-21, 20, 42 * (pet.hp / pet.maxHp), 3);
+  ctx.fillStyle = '#339af0'; ctx.fillRect(-21, 23, 42 * (pet.mp / pet.maxMp), 2);
+  ctx.restore();
+
+  // (b) 背後守護神仙 (1:1 還原影片主角右上身後漂浮的助戰神仙與靈獸)
+  ctx.save();
+  ctx.translate(ALLY_POS.god.x, ALLY_POS.god.y);
+  ctx.fillStyle = 'rgba(255, 212, 59, 0.25)';
+  ctx.beginPath(); ctx.ellipse(0, 12, 28, 12, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.font = '40px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(god.icon, 0, Math.sin(now * 1.8) * 4);
+  ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#ffd43b';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+  ctx.fillText(`【神仙】${god.name}`, 0, -32);
+  ctx.restore();
+
+  // (c) 後排主角與青藍色發光陣法光圈 (1:1 還原影片主角腳下青色光環)
+  ctx.save();
+  ctx.translate(ALLY_POS.hero.x, ALLY_POS.hero.y);
+  ctx.fillStyle = 'rgba(34, 211, 238, 0.32)';
+  ctx.beginPath(); ctx.ellipse(0, 14, 38 + Math.sin(now * 2) * 4, 18, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#67e8f9'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.ellipse(0, 14, 32, 14, 0, 0, Math.PI * 2); ctx.stroke();
+
+  ctx.font = '42px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(CLASSES[h.job].icon, 0, 4 + Math.sin(now * 1.5) * 2);
+  ctx.font = 'bold 12px sans-serif'; ctx.fillStyle = '#72f29a';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+  ctx.fillText(h.name, 0, -34);
+
+  // 主角腳下血魔條
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#222'; ctx.fillRect(-24, 20, 48, 8);
+  ctx.fillStyle = '#ff8787'; ctx.fillRect(-23, 21, 46 * (h.hp / h.maxHp), 3);
+  ctx.fillStyle = '#4dabf7'; ctx.fillRect(-23, 25, 46 * (h.mp / h.maxMp), 2);
+  ctx.restore();
+
+  // 4. 繪製技能雷電/光束/封印特效 (1:1 還原七星雷亟箭紫電轟炸與黃光聚焦)
+  for (let i = BATTLE.fxList.length - 1; i >= 0; i--) {
+    const fx = BATTLE.fxList[i];
+    fx.t += dt;
+    if (fx.t >= fx.maxT) { BATTLE.fxList.splice(i, 1); continue; }
+    const p = fx.t / fx.maxT;
+    ctx.save();
+    if (fx.type === 'lightning') {
+      // 天降紫金雷柱與地面紫色暴風圈 (1:1 還原影片 bA8qY6fsEcA 00:59)
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 4;
+      ctx.shadowColor = fx.color; ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.moveTo(fx.x + (Math.random() * 20 - 10), fx.y - 260);
+      ctx.lineTo(fx.x - 12, fx.y - 120);
+      ctx.lineTo(fx.x + 10, fx.y - 60);
+      ctx.lineTo(fx.x, fx.y);
+      ctx.stroke();
+
+      ctx.fillStyle = fx.color;
+      ctx.globalAlpha = 1 - p;
+      ctx.beginPath();
+      ctx.ellipse(fx.x, fx.y + 8, 45 * p, 22 * p, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (fx.type === 'seal') {
+      ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(fx.x, fx.y - 10, 36 * (1 - p * 0.5), 0, Math.PI * 2); ctx.stroke();
+      ctx.font = 'bold 20px sans-serif'; ctx.fillStyle = '#ffe066'; ctx.textAlign = 'center';
+      ctx.fillText('封', fx.x, fx.y - 4);
+    } else {
+      ctx.strokeStyle = fx.color; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(fx.x, fx.y, 35 * p, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // 5. 繪製經典漫畫鋸齒爆擊傷害數字 (1:1 還原影片 KLYLYANy3mU 00:36 黃底紅框爆擊與 625/469 紅字)
+  for (let i = BATTLE.dmgPopups.length - 1; i >= 0; i--) {
+    const dp = BATTLE.dmgPopups[i];
+    dp.t += dt;
+    dp.y -= dt * 32;
+    if (dp.t > 1.1) { BATTLE.dmgPopups.splice(i, 1); continue; }
+
+    ctx.save();
+    ctx.translate(dp.x, dp.y);
+    if (dp.isCrit) {
+      // 黃色爆炸星芒底座
+      ctx.fillStyle = '#ffec3d';
+      ctx.strokeStyle = '#d90429';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let s = 0; s < 12; s++) {
+        const ang = (s / 12) * Math.PI * 2;
+        const r = s % 2 === 0 ? 34 : 18;
+        if (s === 0) ctx.moveTo(Math.cos(ang) * r, Math.sin(ang) * r * 0.65);
+        else ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * r * 0.65);
+      }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+    ctx.font = '900 22px "Arial Black", Impact, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.strokeStyle = '#7a0000';
+    ctx.lineWidth = 4;
+    ctx.strokeText(dp.text, 0, 6);
+    ctx.fillStyle = dp.text === 'miss' ? '#ffd43b' : '#ff4d4f';
+    ctx.fillText(dp.text, 0, 6);
+    ctx.restore();
+  }
+}
+</script>
+
+<script>
+// ============================================================================
+// 八大古風系統視窗、鴻濛境羊皮紙全圖、快捷鍵與主迴圈初始化
+// ============================================================================
+function renderHotkeys() {
+  const bar = document.getElementById('hotkey-bar');
+  bar.innerHTML = '';
+  STATE.hotkeys.forEach((hk, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'hk-slot';
+    let countHtml = '';
+    if (hk.type === 'item') {
+      const it = STATE.bag.find(b => b.id === hk.id);
+      countHtml = `<span class="hk-count">${it ? it.qty : 0}</span>`;
+    }
+    slot.innerHTML = `<span class="hk-label">${hk.key}</span><span class="hk-icon">${hk.icon}</span>${countHtml}`;
+    slot.onmouseenter = (ev) => showTooltip(ev, `${hk.key}：${hk.name}`, '快捷欄設定', '點擊或按鍵盤 F1~F10 立即施展/使用');
+    slot.onmouseleave = hideTooltip;
+    slot.onclick = () => triggerHotkey(i);
+    bar.appendChild(slot);
+  });
+}
+
+function triggerHotkey(idx) {
+  const hk = STATE.hotkeys[idx];
+  if (!hk) return;
+  SFX.play('click');
+  if (hk.type === 'item') {
+    const it = STATE.bag.find(b => b.id === hk.id);
+    if (it) useBagItem(it);
+  } else if (hk.type === 'skill') {
+    const sk = SKILLS.find(s => s.id === hk.id);
+    if (STATE.mode === 'battle' && sk) {
+      BATTLE.pendingSkill = sk;
+      queuePlayerAction({ type:'skill', skill: sk, targets: BATTLE.enemies.filter(e => e.hp > 0).slice(0, 7) });
+    } else if (sk) {
+      addLog(`[快捷鍵] 已將【${sk.name}】設為預設招式，進入戰鬥即可施放！`, 'log-sys');
+    }
+  } else if (hk.id === 'mount') {
+    STATE.hero.mount.active = !STATE.hero.mount.active;
+    addLog(`[座騎] ${STATE.hero.mount.active ? '召喚騎乘' : '收起座騎'}【${STATE.hero.mount.name}】！`, 'log-sys');
+  } else if (hk.id === 'auto_enc') {
+    STATE.hero.autoEncounter = !STATE.hero.autoEncounter;
+    addLog(`[練功] 原地自動遇敵模式：${STATE.hero.autoEncounter ? '開啟 (一路車！)' : '關閉'}`, 'log-sys');
+  }
+}
+
+function cycleHotkeyPage() {
+  STATE.hotkeyPage = (STATE.hotkeyPage % 4) + 1;
+  document.getElementById('hk-page-num').textContent = STATE.hotkeyPage;
+  SFX.play('click');
+}
+
+function updateTopLeftPortraits() {
+  const h = STATE.hero;
+  const pet = getActivePet();
+  const god = getActiveGod();
+
+  document.getElementById('p-hero-face').innerHTML = `${CLASSES[h.job].icon}<span class="portrait-lv">Lv${h.lv}</span>`;
+  document.getElementById('p-hero-hp').style.width = Math.round((h.hp / h.maxHp) * 100) + '%';
+  document.getElementById('p-hero-mp').style.width = Math.round((h.mp / h.maxMp) * 100) + '%';
+  document.getElementById('p-hero-exp').style.width = Math.round((h.exp / h.maxExp) * 100) + '%';
+
+  document.getElementById('p-pet-face').innerHTML = `${pet.icon}<span class="portrait-lv">Lv${pet.lv}</span>`;
+  document.getElementById('p-pet-hp').style.width = Math.round((pet.hp / pet.maxHp) * 100) + '%';
+  document.getElementById('p-pet-mp').style.width = Math.round((pet.mp / pet.maxMp) * 100) + '%';
+
+  document.getElementById('p-god-face').innerHTML = `${god.icon}<span class="portrait-lv">Lv${god.lv}</span>`;
+}
+
+function toggleWindow(winId) {
+  SFX.play('click');
+  const el = document.getElementById(winId);
+  const btn = document.getElementById('btn-' + winId);
+  const isOpen = el.style.display === 'block';
+  el.style.display = isOpen ? 'none' : 'block';
+  if (btn) btn.classList.toggle('active', !isOpen);
+  if (!isOpen) refreshWindowContent(winId);
+}
+
+function refreshWindowContent(winId) {
+  const h = STATE.hero;
+  if (winId === 'win-character') {
+    const job = CLASSES[h.job];
+    document.getElementById('char-win-content').innerHTML = `
+      <div style="background:#e6d5b8;padding:6px;border-radius:4px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:14px;font-weight:bold;color:#8c2d19;">${job.icon} ${h.name} (${h.reborn}轉・${job.name})</div>
+          <div style="font-size:11px;color:#5c3811;">守護神仙：${getActiveGod().name} | 陣法：${h.formation}</div>
+        </div>
+        <button class="fs-btn orange" onclick="rebornCharacter()">封神轉生</button>
+      </div>
+      <div style="margin-bottom:6px;display:flex;gap:4px;">
+        ${Object.values(CLASSES).map(c => `<button class="fs-btn ${h.job===c.id?'orange':''}" style="flex:1;" onclick="switchJob('${c.id}')">${c.icon}${c.name}</button>`).join('')}
+      </div>
+      <div class="stat-row"><span class="stat-label">等級 / 經驗值</span><span class="stat-val">Lv.${h.lv} (${h.exp}/${h.maxExp})</span></div>
+      <div class="stat-row"><span class="stat-label">生命 (HP) / 仙力 (MP)</span><span class="stat-val">${h.hp}/${h.maxHp} | ${h.mp}/${h.maxMp}</span></div>
+      <div class="stat-row"><span class="stat-label">體力 (影響HP/防禦)</span><span class="stat-val">${h.vit} <button class="fs-btn" onclick="addStat('vit')">+</button></span></div>
+      <div class="stat-row"><span class="stat-label">腕力 (影響劍客武技)</span><span class="stat-val">${h.str} <button class="fs-btn" onclick="addStat('str')">+</button></span></div>
+      <div class="stat-row"><span class="stat-label">智力 (影響仙道/藥師)</span><span class="stat-val">${h.int} <button class="fs-btn" onclick="addStat('int')">+</button></span></div>
+      <div class="stat-row"><span class="stat-label">速度 (影響出手順序)</span><span class="stat-val">${h.agi} <button class="fs-btn" onclick="addStat('agi')">+</button></span></div>
+      <div class="stat-row"><span class="stat-label">剩餘自由屬性點</span><span class="stat-val" style="color:#c92a2a;">${h.freePts} 點</span></div>
+      <div style="margin-top:6px;background:#dcebfa;padding:5px;border-radius:4px;font-size:11px;color:#163252;">
+        <b>五行屬性 (金剋木剋土剋水剋火)：</b><br>
+        金:${h.elem['金']} | 木:${h.elem['木']} | 水:${h.elem['水']} | 火:${h.elem['火']} | 土:${h.elem['土']}
+      </div>
+    `;
+  } else if (winId === 'win-inventory') {
+    document.getElementById('inv-gold-text').textContent = h.gold.toLocaleString();
+    document.getElementById('doll-name-title').textContent = h.name;
+    document.getElementById('doll-avatar-ico').textContent = CLASSES[h.job].icon;
+
+    const leftSlots = ['head', 'neck', 'weapon', 'ring'];
+    const rightSlots = ['armor', 'wrist', 'boots', 'talisman'];
+    const renderEq = (keys) => keys.map(k => {
+      const e = STATE.equips[k];
+      return `<div class="eq-slot" onmouseenter="showTooltip(event,'${e.name}','${e.type}','${e.desc}')" onmouseleave="hideTooltip()">${e.icon}</div>`;
+    }).join('');
+    document.getElementById('eq-col-left').innerHTML = renderEq(leftSlots);
+    document.getElementById('eq-col-right').innerHTML = renderEq(rightSlots);
+    document.getElementById('eq-col-bottom').innerHTML = `
+      <div class="eq-slot" onclick="triggerHotkey(8)" onmouseenter="showTooltip(event,'${h.mount.name}','神獸座騎','點擊切換騎乘，移動速度+55%')" onmouseleave="hideTooltip()">${h.mount.icon}</div>
+      <div class="eq-slot" onclick="toggleWindow('win-gods')" onmouseenter="showTooltip(event,'${getActiveGod().name}','附體神仙','${getActiveGod().bonus}')" onmouseleave="hideTooltip()">${getActiveGod().icon}</div>
+    `;
+
+    const bagGrid = document.getElementById('inv-bag-grid');
+    bagGrid.innerHTML = '';
+    for (let i = 0; i < 20; i++) {
+      const it = STATE.bag[i];
+      const slot = document.createElement('div');
+      slot.className = 'bag-slot';
+      if (it && it.qty > 0) {
+        slot.innerHTML = `<span class="qty">${it.qty}</span>${it.icon}`;
+        slot.onmouseenter = (ev) => showTooltip(ev, `${it.name}x${it.qty}`, it.type, it.desc);
+        slot.onmouseleave = hideTooltip;
+        slot.onclick = () => useBagItem(it);
+      }
+      bagGrid.appendChild(slot);
+    }
+  } else if (winId === 'win-pets') {
+    document.getElementById('pet-win-content').innerHTML = STATE.pets.map((p, idx) => `
+      <div style="background:${p.active?'#fff3cd':'#e9ecef'};border:2px solid ${p.active?'#e5943c':'#adb5bd'};border-radius:5px;padding:6px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:bold;font-size:13px;color:#5c3811;">${p.icon} ${p.name} (Lv.${p.lv}・${p.elem}屬) ${p.active?'<span style="color:#c92a2a;">[參戰中]</span>':''}</div>
+          <div style="font-size:11px;color:#333;">HP:${p.hp}/${p.maxHp} | 攻:${p.atk} 防:${p.def} 速:${p.agi} | 忠誠:${p.loyalty}</div>
+          <div style="font-size:11px;color:#1b4b82;">專屬技能：<b>${p.skill}</b></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <button class="fs-btn ${p.active?'orange':''}" onclick="setActivePet(${idx})">${p.active?'常駐中':'設為參戰'}</button>
+          <button class="fs-btn green" onclick="feedPet(${idx})">🍖 餵食</button>
+        </div>
+      </div>
+    `).join('') + `<div style="font-size:11px;color:#6b441b;">💡 提示：在野外戰鬥中使用「封印卡」可捕捉白字怪與 Lv.1 寶寶！</div>`;
+  } else if (winId === 'win-gods') {
+    document.getElementById('god-win-content').innerHTML = `<div style="max-height:320px;overflow-y:auto;">` +
+      Object.values(GODS).map(g => `
+        <div style="background:${h.godId===g.id?'#fff3cd':'#f8f9fa'};border:1.5px solid ${h.godId===g.id?'#e5943c':'#ced4da'};border-radius:4px;padding:5px 8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-weight:bold;color:#8c2d19;">${g.icon} ${g.name} (Lv.${g.lv}・${g.class})</div>
+            <div style="font-size:11px;color:#444;">${g.desc}</div>
+            <div style="font-size:11px;color:#1d4ed8;font-weight:bold;">庇佑加成：${g.bonus}</div>
+          </div>
+          <button class="fs-btn ${h.godId===g.id?'orange':''}" onclick="selectGod('${g.id}')">${h.godId===g.id?'附體中':'請神附體'}</button>
+        </div>
+      `).join('') + `</div>`;
+  } else if (winId === 'win-skills') {
+    document.getElementById('skill-win-content').innerHTML = `<div style="max-height:330px;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:5px;">` +
+      SKILLS.map(s => `
+        <div style="background:#f8f9fa;border:1px solid #d88b35;border-radius:4px;padding:5px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-weight:bold;font-size:12px;color:#163252;">${s.icon} ${s.name}</div>
+            <div style="font-size:10px;color:#666;">MP:${s.mp} | 範圍:${s.target}</div>
+          </div>
+          <button class="fs-btn" onclick="bindSkillToF5('${s.id}')">設F5</button>
+        </div>
+      `).join('') + `</div>`;
+  } else if (winId === 'win-quests') {
+    document.getElementById('quest-win-content').innerHTML = STATE.quests.map(q => `
+      <div style="background:#fff;border:1.5px solid #d88b35;border-radius:4px;padding:6px;margin-bottom:6px;">
+        <div style="font-weight:bold;color:#8c2d19;display:flex;justify-content:space-between;">
+          <span>${q.name}</span>
+          <span style="color:${q.done?'#2b8a3e':'#e67700'};">${q.done?'✅ 已完成':`${q.progress}/${q.goal}`}</span>
+        </div>
+        <div style="font-size:11px;color:#333;margin:3px 0;">${q.desc}</div>
+        <div style="font-size:11px;color:#1b4b82;font-weight:bold;">🎁 獎勵：${q.reward}</div>
+      </div>
+    `).join('');
+  } else if (winId === 'win-formation') {
+    const fList = [
+      { name:'鶴翼陣', desc:'全體速度+30，陣眼主角每回合可行動 2 次！' },
+      { name:'鋒矢陣', desc:'全體腕力+35、物攻大增，陣眼主角每回合可行動 2 次！' },
+      { name:'衡軛陣', desc:'每回合全體自動回復 120 HP，陣眼主角可行動 2 次！' },
+      { name:'金陣・白虎', desc:'金屬性+80、神仙封免疫，陣眼主角可行動 2 次！' },
+      { name:'諸神黃昏', desc:'失傳三絕陣！體力/腕力+60、物傷減半，全隊二動！' },
+      { name:'絕對領域', desc:'秘傳三絕陣！智力/速度+60、魔傷減半，全隊二動！' }
+    ];
+    document.getElementById('formation-win-content').innerHTML = fList.map(f => `
+      <div style="background:${h.formation===f.name?'#fff3cd':'#fff'};border:1.5px solid #d88b35;border-radius:4px;padding:6px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:bold;color:#8c2d19;">☯️ ${f.name}</div>
+          <div style="font-size:11px;color:#444;">${f.desc}</div>
+        </div>
+        <button class="fs-btn ${h.formation===f.name?'orange':''}" onclick="setFormation('${f.name}')">${h.formation===f.name?'已啟動':'啟動陣法'}</button>
+      </div>
+    `).join('');
+  } else if (winId === 'win-system') {
+    document.getElementById('sys-win-content').innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="fs-btn green" style="padding:7px;font-size:13px;" onclick="saveGameLocal()">💾 儲存單機進度 (LocalStorage)</button>
+        <button class="fs-btn" style="padding:7px;font-size:13px;" onclick="loadGameLocal()">📂 讀取單機進度</button>
+        <button class="fs-btn orange" style="padding:7px;font-size:13px;" onclick="cheatMaxOut()">⚡ 一鍵領取九轉神裝與等級提升</button>
+        <button class="fs-btn" style="padding:7px;font-size:13px;" onclick="STATE.soundEnabled=!STATE.soundEnabled;refreshWindowContent('win-system')">🔊 音效開關：${STATE.soundEnabled?'開啟':'靜音'}</button>
+      </div>
+    `;
+  }
+}
+
+function useBagItem(it) {
+  if (!it || it.qty <= 0) return;
+  SFX.play('heal');
+  const h = STATE.hero;
+  const pet = getActivePet();
+  if (it.id === 'gold_crane') {
+    it.qty--;
+    if (STATE.mode === 'battle') endBattle(false);
+    loadMap('fenghua', 760, 560);
+    addLog('🕊️ [金鐘鶴] 金光閃閃送我回楓華鎮！', 'log-loot');
+  } else if (it.healHp) {
+    it.qty--;
+    h.hp = Math.min(h.maxHp, h.hp + it.healHp);
+    pet.hp = Math.min(pet.maxHp, pet.hp + it.healHp);
+    addLog(`🧪 使用【${it.name}】恢復了 ${it.healHp} 點生命！`, 'log-npc');
+  } else if (it.healMp) {
+    it.qty--;
+    h.mp = Math.min(h.maxMp, h.mp + it.healMp);
+    pet.mp = Math.min(pet.maxMp, pet.mp + it.healMp);
+    addLog(`⚗️ 使用【${it.name}】恢復了 ${it.healMp} 點仙力！`, 'log-npc');
+  } else if (it.id === 'exp_pill') {
+    it.qty--;
+    h.lv++; h.maxHp += 80; h.hp = h.maxHp; h.maxMp += 40; h.mp = h.maxMp; h.freePts += 4;
+    pet.lv++; getActiveGod().lv++;
+    addLog(`💊 服用【九轉仙丹】！主角升至 Lv.${h.lv}、戰寵升至 Lv.${pet.lv}！`, 'log-sys');
+  } else if (it.id === 'weapon_box') {
+    it.qty--;
+    STATE.equips.weapon = { name:'超精淬・誅仙鎮魂劍+9', icon:'🗡️', type:'二代神兵', desc:'攻擊+260 全屬性+50 暴擊+25%' };
+    h.str += 35; h.int += 35;
+    addLog('🎁 開啟【二代神裝禮盒】獲得傳說武器「超精淬・誅仙鎮魂劍+9」！', 'log-loot');
+  } else if (it.id === 'mount_whistle') {
+    const mounts = [
+      { name:'火眼金睛獸', icon:'🦁' },
+      { name:'崑崙仙鶴', icon:'🦢' },
+      { name:'果力飛碟座騎', icon:'🛸' }
+    ];
+    const curIdx = mounts.findIndex(m => m.name === h.mount.name);
+    const next = mounts[(curIdx + 1) % mounts.length];
+    h.mount.name = next.name; h.mount.icon = next.icon; h.mount.active = true;
+    addLog(`📯 切換神獸座騎為【${next.name}】！`, 'log-sys');
+  } else {
+    addLog(`[道具] 使用了 ${it.name}！`, 'log-sys');
+  }
+  updateTopLeftPortraits();
+  renderHotkeys();
+  refreshWindowContent('win-inventory');
+}
+
+function sortAndSupplyBag() {
+  SFX.play('heal');
+  STATE.bag.forEach(b => { if (b.qty < 20) b.qty = 50; });
+  refreshWindowContent('win-inventory');
+  renderHotkeys();
+  addLog('[補給] 已免費補滿金創藥、順氣藥、封印卡與金鐘鶴！', 'log-sys');
+}
+
+function switchJob(jobId) {
+  STATE.hero.job = jobId;
+  STATE.hero.godId = CLASSES[jobId].defaultGod;
+  SFX.play('heal');
+  updateTopLeftPortraits();
+  refreshWindowContent('win-character');
+  addLog(`✨ [轉職] 主角切換職業為【${CLASSES[jobId].name}】，守護神仙切換為【${getActiveGod().name}】！`, 'log-sys');
+}
+
+function rebornCharacter() {
+  SFX.play('win');
+  STATE.hero.reborn++;
+  STATE.hero.vit += 15; STATE.hero.str += 15; STATE.hero.int += 15; STATE.hero.agi += 15;
+  STATE.hero.maxHp += 300; STATE.hero.hp = STATE.hero.maxHp;
+  STATE.hero.maxMp += 150; STATE.hero.mp = STATE.hero.maxMp;
+  updateTopLeftPortraits();
+  refreshWindowContent('win-character');
+  addLog(`🔥 [封神轉生] 恭賀完成第 ${STATE.hero.reborn} 轉！四基全能力+15、保留主神與本職神仙技能！`, 'log-sys');
+}
+
+function addStat(stat) {
+  if (STATE.hero.freePts <= 0) return;
+  STATE.hero[stat]++;
+  STATE.hero.freePts--;
+  if (stat === 'vit') { STATE.hero.maxHp += 15; STATE.hero.hp += 15; }
+  if (stat === 'int') { STATE.hero.maxMp += 10; STATE.hero.mp += 10; }
+  updateTopLeftPortraits();
+  refreshWindowContent('win-character');
+}
+
+function setActivePet(idx) {
+  STATE.pets.forEach((p, i) => p.active = (i === idx));
+  updateTopLeftPortraits();
+  refreshWindowContent('win-pets');
+  addLog(`🐾 切換常駐參戰戰寵為【${getActivePet().name}】！`, 'log-sys');
+}
+
+function feedPet(idx) {
+  const p = STATE.pets[idx];
+  p.hp = p.maxHp; p.mp = p.maxMp; p.loyalty = 100;
+  SFX.play('heal');
+  updateTopLeftPortraits();
+  refreshWindowContent('win-pets');
+  addLog(`🍖 餵食【${p.name}】靈獸飼料，HP/MP全滿且忠誠度升至 100！`, 'log-npc');
+}
+
+function selectGod(gId) {
+  STATE.hero.godId = gId;
+  SFX.play('heal');
+  updateTopLeftPortraits();
+  refreshWindowContent('win-gods');
+  addLog(`🧚 請神成功！【${GODS[gId].name}】現已隨侍在側（${GODS[gId].bonus}）！`, 'log-sys');
+}
+
+function bindSkillToF5(skId) {
+  const sk = SKILLS.find(s => s.id === skId);
+  if (!sk) return;
+  STATE.hotkeys[4] = { key:'F5', type:'skill', id:sk.id, icon:sk.icon, name:sk.short };
+  renderHotkeys();
+  addLog(`📜 已將【${sk.name}】綁定至快捷鍵 F5！`, 'log-sys');
+}
+
+function setFormation(fName) {
+  STATE.hero.formation = fName;
+  SFX.play('heal');
+  refreshWindowContent('win-formation');
+  addLog(`☯️ 已啟動謀士陣法【${fName}】，戰鬥中陣眼主角每回合可行動 2 次！`, 'log-sys');
+}
+
+function advanceQuest(qId, amount) {
+  const q = STATE.quests.find(x => x.id === qId);
+  if (!q || q.done) return;
+  q.progress = Math.min(q.goal, q.progress + amount);
+  if (q.progress >= q.goal) {
+    q.done = true;
+    STATE.hero.gold += 50000;
+    STATE.hero.exp += 200;
+    addLog(`🎉 [任務完成] 完成「${q.name}」！獲得豐厚獎勵！`, 'log-sys');
+  }
+}
+
+function saveGameLocal() {
+  localStorage.setItem('fengshen2_save_v1', JSON.stringify({
+    hero: STATE.hero, bag: STATE.bag, pets: STATE.pets, quests: STATE.quests
+  }));
+  SFX.play('win');
+  addLog('💾 [系統] 單機進度已成功儲存至瀏覽器！', 'log-sys');
+}
+
+function loadGameLocal() {
+  const raw = localStorage.getItem('fengshen2_save_v1');
+  if (!raw) { addLog('[系統] 尚無存檔紀錄。', 'log-dmg'); return; }
+  const data = JSON.parse(raw);
+  Object.assign(STATE.hero, data.hero);
+  STATE.bag = data.bag; STATE.pets = data.pets; STATE.quests = data.quests;
+  loadMap(STATE.hero.map, STATE.hero.x, STATE.hero.y);
+  updateTopLeftPortraits(); renderHotkeys();
+  addLog('📂 [系統] 已成功讀取單機存檔！', 'log-sys');
+}
+
+function cheatMaxOut() {
+  SFX.play('win');
+  const h = STATE.hero;
+  h.lv += 10; h.vit += 30; h.str += 40; h.int += 40; h.agi += 30;
+  h.maxHp += 800; h.hp = h.maxHp; h.maxMp += 500; h.mp = h.maxMp;
+  h.gold += 10000000;
+  updateTopLeftPortraits();
+  refreshWindowContent('win-system');
+  addLog('⚡ [密技] 已提升10級、四基暴漲並入帳 1,000 萬仙幣！', 'log-loot');
+}
+
+// 繪製鴻濛境古風羊皮紙全圖 (1:1 還原影片 KLYLYANy3mU 01:38 紅點連線與右上太極章)
+const WORLD_NODES = [
+  { name:'楓華鎮', map:'fenghua', x: 405, y: 295, desc:'新手主城' },
+  { name:'鴻濛境', map:'hongmeng', x: 520, y: 360, desc:'紅楓與竹林仙境' },
+  { name:'截仙遺址', map:'jiexian', x: 615, y: 270, desc:'石怪大軍練功區' },
+  { name:'果力村', map:'guoli', x: 260, y: 230, desc:'幸福果力島主城' },
+  { name:'大禹治水碑', map:'hongmeng', x: 320, y: 400, desc:'上古神碑' },
+  { name:'女媧神像', map:'hongmeng', x: 210, y: 340, desc:'取神聖地' },
+  { name:'太極境', map:'jiexian', x: 690, y: 390, desc:'高階練功境' }
+];
+
+function toggleWorldMap() {
+  SFX.play('click');
+  const modal = document.getElementById('world-map-modal');
+  const show = modal.style.display !== 'block';
+  modal.style.display = show ? 'block' : 'none';
+  if (show) drawParchmentWorldMap();
+}
+
+function drawParchmentWorldMap() {
+  const wc = document.getElementById('world-map-canvas');
+  const wg = wc.getContext('2d');
+  wg.clearRect(0, 0, wc.width, wc.height);
+
+  // 經緯格線與雲紋
+  wg.strokeStyle = 'rgba(110, 70, 25, 0.25)';
+  wg.lineWidth = 1;
+  for (let x = 0; x < wc.width; x += 60) { wg.beginPath(); wg.moveTo(x, 0); wg.lineTo(x, wc.height); wg.stroke(); }
+  for (let y = 0; y < wc.height; y += 60) { wg.beginPath(); wg.moveTo(0, y); wg.lineTo(wc.width, y); wg.stroke(); }
+
+  // 仙界浮空群島綠色輪廓
+  wg.fillStyle = 'rgba(92, 128, 68, 0.65)';
+  wg.strokeStyle = '#5c3a18'; wg.lineWidth = 3;
+  wg.beginPath(); wg.ellipse(430, 315, 290, 145, -0.1, 0, Math.PI * 2); wg.fill(); wg.stroke();
+
+  // 左上角古風大字標題「鴻濛境」與右上角太極八卦印章 (1:1 還原影片 01:38)
+  wg.fillStyle = '#2b1806';
+  wg.font = 'bold 42px "PMingLiU", serif';
+  wg.fillText('鴻 濛 境', 36, 62);
+  wg.font = 'bold 14px sans-serif';
+  wg.fillStyle = '#7a2e12';
+  wg.fillText('點擊任一紅色地標即可瞬間御劍傳送前往該區域', 38, 90);
+
+  drawYinYangPlatform(wg, 745, 78, 38);
+
+  // 紅色古道連線
+  wg.strokeStyle = '#a8201a'; wg.lineWidth = 2.5;
+  wg.beginPath();
+  WORLD_NODES.forEach((n, i) => {
+    if (i === 0) wg.moveTo(n.x, n.y);
+    else wg.lineTo(n.x, n.y);
+  });
+  wg.stroke();
+
+  // 紅點地標與白底黑字標籤
+  WORLD_NODES.forEach(n => {
+    wg.fillStyle = '#d90429';
+    wg.beginPath(); wg.arc(n.x, n.y, 8, 0, Math.PI * 2); wg.fill();
+    wg.strokeStyle = '#fff'; wg.lineWidth = 2; wg.stroke();
+
+    wg.fillStyle = 'rgba(255,248,231,0.92)';
+    wg.strokeStyle = '#4a2505'; wg.lineWidth = 1.5;
+    wg.fillRect(n.x - 38, n.y - 30, 76, 18);
+    wg.strokeRect(n.x - 38, n.y - 30, 76, 18);
+    wg.fillStyle = '#1b1b1b'; wg.font = 'bold 12px sans-serif'; wg.textAlign = 'center';
+    wg.fillText(n.name, n.x, n.y - 16);
+  });
+}
+
+document.getElementById('world-map-canvas').addEventListener('click', (ev) => {
+  const rect = ev.target.getBoundingClientRect();
+  const mx = ev.clientX - rect.left;
+  const my = ev.clientY - rect.top;
+  for (const n of WORLD_NODES) {
+    if (Math.hypot(mx - n.x, my - n.y) < 36) {
+      toggleWorldMap();
+      if (STATE.mode === 'battle') endBattle(false);
+      loadMap(n.map, 450, 350);
+      return;
+    }
+  }
+});
+
+// 滑鼠互動：點擊地圖行走、點擊NPC互動、戰鬥中點擊敵人施放技能
+canvas.addEventListener('mousedown', (ev) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = (ev.clientX - rect.left) * (canvas.width / rect.width);
+  const my = (ev.clientY - rect.top) * (canvas.height / rect.height);
+
+  if (STATE.mode === 'battle') {
+    if (BATTLE.phase === 'player_target' && BATTLE.pendingSkill) {
+      for (const e of BATTLE.enemies) {
+        if (e.hp > 0 && Math.hypot(mx - e.x, my - e.y) < 38) {
+          SFX.play('click');
+          if (BATTLE.pendingSkill.id === 'capture') {
+            BATTLE.pendingSkill.item.qty = Math.max(0, BATTLE.pendingSkill.item.qty - 1);
+            renderHotkeys();
+            queuePlayerAction({ type:'capture', target: e });
+          } else {
+            const targets = getTargetsByScope(e, BATTLE.pendingSkill.target);
+            queuePlayerAction({ type:'skill', skill: BATTLE.pendingSkill, targets });
+          }
+          return;
+        }
+      }
+    }
+    return;
+  }
+
+  // 野地/城鎮模式：計算世界座標
+  const m = MAPS[STATE.hero.map];
+  const camX = Math.max(0, Math.min(m.width - canvas.width, STATE.hero.x - canvas.width / 2));
+  const camY = Math.max(0, Math.min(m.height - canvas.height, STATE.hero.y - canvas.height / 2));
+  const wx = mx + camX;
+  const wy = my + camY;
+
+  // 檢查是否點擊了 NPC 或 封神星宿
+  for (const npc of m.npcs) {
+    if (Math.hypot(wx - npc.x, wy - npc.y) < 42) {
+      SFX.play('click');
+      if (npc.isStarBoss) {
+        addLog(`⚔️ [星宿挑戰] 向【${npc.name}】發起封神榜挑戰！`, 'log-dmg');
+        startBattle(STAR_BOSSES[npc.monsterKey] || STAR_BOSSES.star_dikui, false);
+        return;
+      } else if (npc.action === 'god_statue') {
+        advanceQuest('q1', 1);
+        toggleWindow('win-gods');
+        addLog('🗿 [姜子牙木像] 誠心參拜木像，領悟了各職業神仙奧義！', 'log-npc');
+        return;
+      } else if (npc.action === 'trainer') {
+        toggleWindow('win-pets');
+        return;
+      } else if (npc.action === 'shop') {
+        sortAndSupplyBag();
+        toggleWindow('win-inventory');
+        return;
+      } else {
+        STATE.hero.hp = STATE.hero.maxHp;
+        STATE.hero.mp = STATE.hero.maxMp;
+        updateTopLeftPortraits();
+        addLog(`💚 [${npc.name}] ${npc.bubble} (已為你完全恢復HP與MP！)`, 'log-npc');
+        return;
+      }
+    }
+  }
+
+  // 檢查是否直接點擊了野怪
+  for (const mob of STATE.fieldEntities) {
+    if (Math.hypot(wx - mob.x, wy - mob.y) < 36) {
+      startBattle(mob.tpl, mob.isBaby);
+      return;
+    }
+  }
+
+  // 設定移動目標並產生青色地面光圈
+  STATE.hero.targetX = Math.max(60, Math.min(m.width - 60, wx));
+  STATE.hero.targetY = Math.max(60, Math.min(m.height - 60, wy));
+  STATE.clickRipples.push({ x: STATE.hero.targetX, y: STATE.hero.targetY, r: 8, alpha: 1.0 });
+});
+
+// 點擊小地圖快速導航
+mmCanvas.addEventListener('mousedown', (ev) => {
+  if (STATE.mode !== 'field') return;
+  const rect = mmCanvas.getBoundingClientRect();
+  const rx = (ev.clientX - rect.left) / rect.width;
+  const ry = (ev.clientY - rect.top) / rect.height;
+  const m = MAPS[STATE.hero.map];
+  STATE.hero.targetX = rx * m.width;
+  STATE.hero.targetY = ry * m.height;
+});
+
+// 鍵盤快捷鍵支援 (F1~F10、WASD、C/B/P/G/S/Q/F/M/空白鍵)
+window.addEventListener('keydown', (ev) => {
+  if (document.activeElement === document.getElementById('chat-input')) return;
+  if (ev.key.startsWith('F') && ev.key.length <= 3) {
+    const num = parseInt(ev.key.slice(1), 10);
+    if (num >= 1 && num <= 10) { ev.preventDefault(); triggerHotkey(num - 1); }
+  } else if (ev.key === ' ' && BATTLE.phase === 'victory') {
+    closeVictoryModal();
+  } else if (ev.key.toLowerCase() === 'c') toggleWindow('win-character');
+  else if (ev.key.toLowerCase() === 'b') toggleWindow('win-inventory');
+  else if (ev.key.toLowerCase() === 'p') toggleWindow('win-pets');
+  else if (ev.key.toLowerCase() === 'g') toggleWindow('win-gods');
+  else if (ev.key.toLowerCase() === 's') toggleWindow('win-skills');
+  else if (ev.key.toLowerCase() === 'q') toggleWindow('win-quests');
+  else if (ev.key.toLowerCase() === 'f') toggleWindow('win-formation');
+  else if (ev.key.toLowerCase() === 'm') toggleWorldMap();
+});
+
+// 聊天與密技指令
+function sendChatMessage() {
+  const inp = document.getElementById('chat-input');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  inp.value = '';
+  if (txt === '/lv99') { cheatMaxOut(); return; }
+  if (txt === '/boss') { startBattle(STAR_BOSSES.star_pojun, false); return; }
+  if (txt === '/shiguai') { startBattle(MAPS.jiexian.monsters[0], false); return; }
+  addLog(`[一般] ${STATE.hero.name}：${txt}`, 'log-chat');
+}
+function triggerBroadcast() {
+  addLog(`📢 【大聲公廣播】${STATE.hero.name}：組隊車石怪、打封神星宿囉！要的++！`, 'log-sys');
+}
+function sendEmoji() {
+  addLog(`[一般] ${STATE.hero.name} 露出了開心的笑容 😊✨`, 'log-chat');
+}
+function cycleChatChannel() {
+  const chs = ['一般頻道 (~)', '隊伍頻道 (#)', '洞府頻道 (@)', '交易頻道 ($)'];
+  const el = document.getElementById('chat-ch-pill');
+  el.textContent = chs[(chs.indexOf(el.textContent) + 1) % chs.length];
+}
+function filterChat() { SFX.play('click'); }
+function toggleMinimap() {
+  const c = document.getElementById('minimap-canvas');
+  c.style.display = c.style.display === 'none' ? 'block' : 'none';
+}
+
+function showTooltip(ev, title, type, desc) {
+  const tt = document.getElementById('fs-tooltip');
+  tt.innerHTML = `<div class="tt-title">${title}</div><div class="tt-type">${type}</div><div class="tt-desc">${desc}</div>`;
+  tt.style.display = 'block';
+  const wrapper = document.getElementById('game-wrapper').getBoundingClientRect();
+  tt.style.left = Math.min(760, Math.max(10, ev.clientX - wrapper.left + 14)) + 'px';
+  tt.style.top = Math.min(620, Math.max(10, ev.clientY - wrapper.top + 14)) + 'px';
+}
+function hideTooltip() {
+  document.getElementById('fs-tooltip').style.display = 'none';
+}
+
+// 初始化遊戲
+let lastTime = performance.now();
+function gameLoop(now) {
+  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
+  if (STATE.mode === 'battle') {
+    updateAndDrawBattle(dt);
+  } else {
+    updateAndDrawField(dt);
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  renderHotkeys();
+  updateTopLeftPortraits();
+  loadMap('hongmeng', 420, 310);
+  addLog('✨ 歡迎回到《封神2：仙界傳 Online》經典單機復刻版！', 'log-sys');
+  addLog('💡 點擊地面移動，碰撞或點擊野怪進入「45度斜向回合制戰鬥」，按右上【仙界全圖】可切換楓華鎮、鴻濛境、截仙遺址、果力村！', 'log-npc');
+  addLog('[你] 獲得 鬼草 .', 'log-loot');
+  requestAnimationFrame(gameLoop);
+});
+</script>
+</body>
+</html>
